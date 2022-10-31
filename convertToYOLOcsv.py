@@ -1,4 +1,3 @@
-import torch
 import csv
 import os
 
@@ -31,8 +30,8 @@ class Annotation:
         return self.__height
 
 
-TRAIN_LABELS_PATH = r'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\DOTA-v1.5_train_hbb'
-TRAIN_LABELS_PATH_CSV = r'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\csv_annotations'
+TRAIN_LABELS_PATH = input('Enter directory for txt annotation files: ')
+TRAIN_LABELS_PATH_CSV = input('Enter directory where csv files will be stored: ')
 
 annotations_list = []
 

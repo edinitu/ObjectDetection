@@ -1,7 +1,9 @@
 import os
 import matplotlib.pyplot as plt
 
-
+'''
+    Python class for displaying an image from DOTA dataset with correspoding bounding boxes.
+'''
 class ImageElement:
     def __init__(self):
         self.bounding_box = []
@@ -70,10 +72,10 @@ def read_one_image_labels(img_label):
     return img_elements
 
 
-TRAIN_DATA_PATH = r'C:\Users\edini\Desktop\licenta\data_set\training_set\images'
-TRAIN_LABELS_PATH = r'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\DOTA-v1.5_train_hbb'
+TRAIN_DATA_PATH = input('Enter train images root directory path: ')
+TRAIN_LABELS_PATH = input('Enter root directory for txt annotations: ')
 
-item = input()
+item = input('Enter image to show: ')
 elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'))
 img = plt.imread(os.path.join(TRAIN_DATA_PATH, item +'.png'))
 
