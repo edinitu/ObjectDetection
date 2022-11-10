@@ -43,7 +43,7 @@ class AerialImagesDataset(Dataset):
 root_csv = input('Enter root directory for csv files: ')
 root_img = input('Enter root directory for train images: ')
 
-face_dataset = AerialImagesDataset(root_csv_files=root_csv, root_img_files=root_img)
+aerial_dataset = AerialImagesDataset(root_csv_files=root_csv, root_img_files=root_img)
 
 fig = plt.figure()
 
@@ -51,6 +51,6 @@ fig = plt.figure()
     Example with first 2 images of training dataset
 '''
 for i in range(2):
-    sample = face_dataset[i]
+    sample = aerial_dataset[i]
 
     print(i, sample['image'].shape, sample['annotations'].shape)
