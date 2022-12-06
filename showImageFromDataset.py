@@ -29,6 +29,15 @@ class ImageElement:
     def get_bounding_box(self):
         return self.bounding_box
 
+    def get_label(self):
+        return self.label
+
+    def get_number_label(self):
+        return self.number_label
+
+    def get_image_metadata(self):
+        return self.image_metadata
+
     def set_bbox(self, bbox):
         self.bounding_box = bbox
 
@@ -57,8 +66,28 @@ class ImageMetadata:
     def set_gsd(self, gsd):
         self.gsd = gsd
 
+    def get_image_source(self):
+        return self.image_source
 
-def crop(path, input, height, width, bounding_boxes):
+    def get_gsd(self):
+        return self.gsd
+
+
+def write_to_txt(path, part, bbox):
+    if not os.path.exists(path):
+        with open(path, 'a+') as f:
+            f.write('imagesource:'+part.get_image_metadata().get_image_source()+'\n')
+            f.write('gsd:' + part.get_image_metadata().get_gsd()+'\n')
+    else:
+        with open(path, 'a+') as f:
+            for coord in bbox:
+                f.write(str(coord) + " ")
+            f.write(part.get_label() + " ")
+            f.write(part.get_number_label())
+            f.write('\n')
+
+
+def crop(cropped_path, txt_path, input, height, width, image_parts):
     im = Image.open(input)
     imgwidth, imgheight = im.size
     k = 0
@@ -68,14 +97,19 @@ def crop(path, input, height, width, bounding_boxes):
     for i in range(0, imgheight, height):
         for j in range(0, imgwidth, width):
             box = (j, i, j+width, i+height)
-            for bbox in bounding_boxes:
-                if bbox[0] >= j and bbox[1] >= i and bbox[4] <= j+width and bbox[5] <= i+height:
-                    bboxes_for_one_piece.append(convert_bbox_to_smaller_image(bbox, j, i))
+            for part in image_parts:
+                if part.get_bounding_box()[0] >= j and part.get_bounding_box()[1] >= i\
+                        and part.get_bounding_box()[4] <= j+width and part.get_bounding_box()[5] <= i+height:
+                    bboxes_for_one_piece.append(convert_bbox_to_smaller_image(part.get_bounding_box(), j, i))
+                    bbox_to_write = convert_bbox_to_smaller_image(part.get_bounding_box(), j, i)
+                    path = txt_path + r'\P' + str(k) + '.txt'
+                    write_to_txt(path, part, bbox_to_write)
                     bbox_in_imgbox = True
+
             # save only images that contain minimum 1 bounding box for training
             if bbox_in_imgbox:
                 a = im.crop(box)
-                a.save(os.path.join(path, input[len(input)-9:len(input)-4] + "-%s.png" % k))
+                a.save(os.path.join(cropped_path, input[len(input)-9:len(input)-4] + "-%s.png" % k))
                 bbox_in_imgbox = False
 
                 new_bboxes[k] = bboxes_for_one_piece.copy()
@@ -125,16 +159,17 @@ img = plt.imread(image_path)
 
 plt.figure()
 # Get original image bounding boxes and show image with them.
-bounding_boxes = []
+image_parts = []
 for element in elements:
-    bounding_boxes.append(element.get_bounding_box())
+    image_parts.append(element)
     element.draw_box()
 
 plt.imshow(img)
 plt.plot()
 
+new_txt_annotations = input('Enter the path for txt files: ')
 # Get new bboxes for cropped parts of original image
-new_bboxes = crop(image_cropped_path, image_path, 448, 448, bounding_boxes)
+new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts)
 
 # show one "cut" of the bigger image with its bounding boxes
 image_piece_number = input('Enter number of piece to display: ')
