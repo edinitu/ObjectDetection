@@ -87,10 +87,9 @@ def write_to_txt(path, part, bbox):
             f.write('\n')
 
 
-def crop(cropped_path, txt_path, input, height, width, image_parts):
+def crop(cropped_path, txt_path, input, height, width, image_parts, k):
     im = Image.open(input)
     imgwidth, imgheight = im.size
-    k = 0
     bbox_in_imgbox = False
     new_bboxes = {}
     bboxes_for_one_piece = []
@@ -102,7 +101,7 @@ def crop(cropped_path, txt_path, input, height, width, image_parts):
                         and part.get_bounding_box()[4] <= j+width and part.get_bounding_box()[5] <= i+height:
                     bboxes_for_one_piece.append(convert_bbox_to_smaller_image(part.get_bounding_box(), j, i))
                     bbox_to_write = convert_bbox_to_smaller_image(part.get_bounding_box(), j, i)
-                    path = txt_path + r'\P' + str(k) + '.txt'
+                    path = os.path.join(txt_path, input[len(input)-9:len(input)-4] + "-" + str(k) + ".txt")
                     write_to_txt(path, part, bbox_to_write)
                     bbox_in_imgbox = True
 
@@ -148,39 +147,61 @@ def convert_bbox_to_smaller_image(bbox, j, i):
         t += 1
     return new_bbox
 
+
 TRAIN_DATA_PATH = input('Enter train images root directory path: ')
 TRAIN_LABELS_PATH = input('Enter root directory for txt annotations: ')
 
-item = input('Enter image to show: ')
-image_cropped_path = input('Enter the path where you want to save cropped images: ')
-elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'))
-image_path = os.path.join(TRAIN_DATA_PATH, item +'.png')
-img = plt.imread(image_path)
+option = input('Show one image? ')
 
-plt.figure()
-# Get original image bounding boxes and show image with them.
-image_parts = []
-for element in elements:
-    image_parts.append(element)
-    element.draw_box()
+if option == 'yes':
+    item = input('Enter image to show: ')
+    image_cropped_path = input('Enter the path where you want to save cropped images: ')
+    elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'))
+    image_path = os.path.join(TRAIN_DATA_PATH, item + '.png')
+    img = plt.imread(image_path)
 
-plt.imshow(img)
-plt.plot()
+    plt.figure()
+    # Get original image bounding boxes and show image with them.
+    image_parts = []
+    for element in elements:
+        image_parts.append(element)
+        element.draw_box()
 
-new_txt_annotations = input('Enter the path for txt files: ')
-# Get new bboxes for cropped parts of original image
-new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts)
+    plt.imshow(img)
+    plt.plot()
 
-# show one "cut" of the bigger image with its bounding boxes
-image_piece_number = input('Enter number of piece to display: ')
-cropped_imgs_path = os.path.join(image_cropped_path, item + '-' + image_piece_number + '.png')
-img = plt.imread(cropped_imgs_path)
-plt.figure()
+    new_txt_annotations = input('Enter the path for txt files: ')
+    # Get new bboxes for cropped parts of original image
+    k = 0
+    new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)
 
-for i in range(len(new_bboxes[int(image_piece_number)])):
-    elements[i].set_bbox(new_bboxes[int(image_piece_number)][i])
-    elements[i].draw_box()
+    # show one "cut" of the bigger image with its bounding boxes
+    image_piece_number = input('Enter number of piece to display: ')
+    cropped_imgs_path = os.path.join(image_cropped_path, item + '-' + image_piece_number + '.png')
+    img = plt.imread(cropped_imgs_path)
+    plt.figure()
 
-plt.imshow(img)
-plt.plot()
-plt.show()
+    for i in range(len(new_bboxes[int(image_piece_number)])):
+        elements[i].set_bbox(new_bboxes[int(image_piece_number)][i])
+        elements[i].draw_box()
+
+    plt.imshow(img)
+    plt.plot()
+    plt.show()
+
+else:
+    image_cropped_path = input('Enter the path where you want to save cropped images: ')
+    new_txt_annotations = input('Enter the path for txt files: ')
+    k = 0
+    for filename in os.listdir(TRAIN_DATA_PATH):
+        elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'))
+        image_path = os.path.join(TRAIN_DATA_PATH, filename)
+        img = plt.imread(image_path)
+
+        # Get original image bounding boxes and show image with them.
+        image_parts = []
+        for element in elements:
+            image_parts.append(element)
+
+        # Get new bboxes for cropped parts of original image
+        new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)
