@@ -1,4 +1,3 @@
-
 import csv
 import os
 
@@ -57,9 +56,9 @@ for filename in os.listdir(TRAIN_LABELS_PATH):
     f = os.path.join(TRAIN_LABELS_PATH, filename)
     if os.path.isfile(f):
         with open(f, 'r') as file:
+            file.readline()
+            file.readline()
             while True:
-                file.readline()
-                file.readline()
                 line = file.readline().split(' ')
                 if line == ['']:
                     break
