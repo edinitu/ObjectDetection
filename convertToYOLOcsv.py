@@ -1,3 +1,4 @@
+
 import csv
 import os
 
@@ -76,5 +77,3 @@ for filename in os.listdir(TRAIN_LABELS_PATH):
             writer = csv.writer(csv_file)
             writer.writerows(annotations_list)
             annotations_list.clear()
-
-

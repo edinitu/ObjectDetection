@@ -1,5 +1,7 @@
 import os
 import matplotlib.pyplot as plt
+from PIL import Image
+
 
 '''
     Python class for displaying an image from DOTA dataset with correspoding bounding boxes.
@@ -27,6 +29,9 @@ class ImageElement:
     def get_bounding_box(self):
         return self.bounding_box
 
+    def set_bbox(self, bbox):
+        self.bounding_box = bbox
+
     def draw_box(self):
         x = []
         y = []
@@ -53,6 +58,32 @@ class ImageMetadata:
         self.gsd = gsd
 
 
+def crop(path, input, height, width, bounding_boxes):
+    im = Image.open(input)
+    imgwidth, imgheight = im.size
+    k = 0
+    bbox_in_imgbox = False
+    new_bboxes = {}
+    bboxes_for_one_piece = []
+    for i in range(0, imgheight, height):
+        for j in range(0, imgwidth, width):
+            box = (j, i, j+width, i+height)
+            for bbox in bounding_boxes:
+                if bbox[0] >= j and bbox[1] >= i and bbox[4] <= j+width and bbox[5] <= i+height:
+                    bboxes_for_one_piece.append(convert_bbox_to_smaller_image(bbox, j, i))
+                    bbox_in_imgbox = True
+            # save only images that contain minimum 1 bounding box for training
+            if bbox_in_imgbox:
+                a = im.crop(box)
+                a.save(os.path.join(path, input[len(input)-9:len(input)-4] + "-%s.png" % k))
+                bbox_in_imgbox = False
+
+                new_bboxes[k] = bboxes_for_one_piece.copy()
+                bboxes_for_one_piece.clear()
+                k += 1
+    return new_bboxes
+
+
 def read_one_image_labels(img_label):
     with open(img_label, 'r') as file:
         img_elements = []
@@ -72,16 +103,48 @@ def read_one_image_labels(img_label):
     return img_elements
 
 
+def convert_bbox_to_smaller_image(bbox, j, i):
+    new_bbox = []
+    t = 0
+    for point in bbox:
+        if t % 2 == 0:
+            new_bbox.append(point - j)
+        else:
+            new_bbox.append(point - i)
+        t += 1
+    return new_bbox
+
 TRAIN_DATA_PATH = input('Enter train images root directory path: ')
 TRAIN_LABELS_PATH = input('Enter root directory for txt annotations: ')
 
 item = input('Enter image to show: ')
+image_cropped_path = input('Enter the path where you want to save cropped images: ')
 elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'))
-img = plt.imread(os.path.join(TRAIN_DATA_PATH, item +'.png'))
+image_path = os.path.join(TRAIN_DATA_PATH, item +'.png')
+img = plt.imread(image_path)
 
 plt.figure()
+# Get original image bounding boxes and show image with them.
+bounding_boxes = []
 for element in elements:
+    bounding_boxes.append(element.get_bounding_box())
     element.draw_box()
+
+plt.imshow(img)
+plt.plot()
+
+# Get new bboxes for cropped parts of original image
+new_bboxes = crop(image_cropped_path, image_path, 448, 448, bounding_boxes)
+
+# show one "cut" of the bigger image with its bounding boxes
+image_piece_number = input('Enter number of piece to display: ')
+cropped_imgs_path = os.path.join(image_cropped_path, item + '-' + image_piece_number + '.png')
+img = plt.imread(cropped_imgs_path)
+plt.figure()
+
+for i in range(len(new_bboxes[int(image_piece_number)])):
+    elements[i].set_bbox(new_bboxes[int(image_piece_number)][i])
+    elements[i].draw_box()
 
 plt.imshow(img)
 plt.plot()
