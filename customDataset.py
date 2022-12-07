@@ -14,12 +14,12 @@ class AerialImagesDataset(Dataset):
 
         self.bboxes = []
         self.images = []
-        for csv_file in os.listdir(root_csv_files):
+        for csv_file in sorted(os.listdir(root_csv_files)):
             try:
-                self.bboxes.append(pd.read_csv(os.path.join(root_csv_files, csv_file)))
+                self.bboxes.append(pd.read_csv(os.path.join(root_csv_files, csv_file), header=None))
             except EmptyDataError:
                 print('Image corresponding to this file has no annotations ', csv_file)
-        for image in os.listdir(root_img_files):
+        for image in sorted(os.listdir(root_img_files)):
             self.images.append(os.path.join(root_img_files, image))
         self.transform = transform
 

@@ -73,18 +73,23 @@ class ImageMetadata:
         return self.gsd
 
 
+def write_line(file, part, bbox):
+    for coord in bbox:
+        file.write(str(coord) + " ")
+    file.write(part.get_label() + " ")
+    file.write(part.get_number_label())
+    file.write('\n')
+
+
 def write_to_txt(path, part, bbox):
     if not os.path.exists(path):
         with open(path, 'a+') as f:
             f.write('imagesource:'+part.get_image_metadata().get_image_source()+'\n')
             f.write('gsd:' + part.get_image_metadata().get_gsd()+'\n')
+            write_line(f, part, bbox)
     else:
         with open(path, 'a+') as f:
-            for coord in bbox:
-                f.write(str(coord) + " ")
-            f.write(part.get_label() + " ")
-            f.write(part.get_number_label())
-            f.write('\n')
+            write_line(f, part, bbox)
 
 
 def crop(cropped_path, txt_path, input, height, width, image_parts, k):
