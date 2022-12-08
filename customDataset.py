@@ -1,6 +1,7 @@
 import os
 
 import torch.utils.data
+import yaml
 from matplotlib import pyplot as plt
 from torch.utils.data import Dataset
 import pandas as pd
@@ -39,9 +40,11 @@ class AerialImagesDataset(Dataset):
 
         return sample
 
+with open('configs/dataset-config.yml') as f:
+    paths = yaml.safe_load(f)
 
-root_csv = input('Enter root directory for csv files: ')
-root_img = input('Enter root directory for train images: ')
+root_csv = paths['train_labels_csv']
+root_img = paths['train_images_path']
 
 aerial_dataset = AerialImagesDataset(root_csv_files=root_csv, root_img_files=root_img)
 

@@ -1,6 +1,9 @@
 import csv
 import os
 
+import yaml
+
+
 class Annotation:
     def __init__(self, clazz, x_center, y_center, width, height):
         self.__clazz = clazz
@@ -30,8 +33,11 @@ class Annotation:
         return self.__height
 
 
-TRAIN_LABELS_PATH = input('Enter directory for txt annotation files: ')
-TRAIN_LABELS_PATH_CSV = input('Enter directory where csv files will be stored: ')
+with open('configs/convertYOLO-config.yml') as f:
+    paths = yaml.safe_load(f)
+
+TRAIN_LABELS_PATH = paths['train_labels_txt']
+TRAIN_LABELS_PATH_CSV = paths['train_labels_csv']
 
 annotations_list = []
 
