@@ -1,2 +1,4 @@
 train_images_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\images'
-train_labels_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
+train_labels_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\csv_annotations'
+img_dim: 448
+no_of_classes: 16

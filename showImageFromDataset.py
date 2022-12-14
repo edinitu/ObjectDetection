@@ -122,7 +122,7 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
     return new_bboxes
 
 
-def read_one_image_labels(img_label):
+def read_one_image_labels(img_label, dict):
     with open(img_label, 'r') as file:
         img_elements = []
         img_data = ImageMetadata()
@@ -136,7 +136,13 @@ def read_one_image_labels(img_label):
                 break
             img_element.set_bounding_box(line[0:8])
             img_element.set_label(line[8])
-            img_element.set_number_label(line[9].strip('\n'))
+            if line[8] in dict:
+                img_element.set_number_label(str(dict[line[8]]))
+            else:
+                global n
+                dict[line[8]] = n
+                n += 1
+                img_element.set_number_label(str(dict[line[8]]))
             img_elements.append(img_element)
     return img_elements
 
@@ -161,6 +167,10 @@ paths = configMap['Paths']
 TRAIN_DATA_PATH = paths['train_data_path']
 TRAIN_LABELS_PATH = paths['train_labels_path']
 
+# labels map
+dict = {}
+n = 0
+
 option = configMap['show_one_img']
 
 #   If we set the option in the config to show only one image, then the script will
@@ -172,7 +182,7 @@ option = configMap['show_one_img']
 if option:
     item = configMap['img_to_show']
     image_cropped_path = paths['cropped_imgs_path']
-    elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'))
+    elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'), dict)
     image_path = os.path.join(TRAIN_DATA_PATH, item + '.png')
     img = plt.imread(image_path)
 
@@ -210,7 +220,7 @@ else:
     new_txt_annotations = paths['cropped_labels_path']
     k = 0
     for filename in os.listdir(TRAIN_DATA_PATH):
-        elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'))
+        elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'), dict)
         image_path = os.path.join(TRAIN_DATA_PATH, filename)
         img = plt.imread(image_path)
 
