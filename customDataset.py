@@ -52,7 +52,7 @@ class AerialImagesDataset(Dataset):
                 # Ground truth for a grid cell is one bounding box (IOU, x, y, w, h) with its class
                 # probabilities for TWO objects. Initialize it with confidence 0 for both objects and
                 # random coordinates and set it accordingly if a grid cell contains one or two objects.
-                grid_vector = np.random.rand(5 + self.no_of_classes, 1)
+                grid_vector = np.random.rand((5 + self.no_of_classes)*2, 1)
                 # before checking, assume no object is in the cell
                 grid_vector[0] = 0
                 grid_vector[21] = 0
