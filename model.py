@@ -88,8 +88,12 @@ class NetworkModel(torch.nn.Module):
             print(elem)
 
 
-shape = (3, 448, 448)
-rand_tensor = torch.rand(shape)
-model = NetworkModel()
-model.print_network()
-model.forward(rand_tensor)
+def example():
+    shape = (3, 448, 448)
+    rand_tensor = torch.rand(shape)
+    model = NetworkModel()
+    model.print_network()
+    model.forward(rand_tensor)
+
+
+#example()

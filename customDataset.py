@@ -34,12 +34,14 @@ class AerialImagesDataset(Dataset):
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)
-        sample = {'image': image, 'annotations': grids_annotations}
+        #sample = {'image': image, 'annotations': grids_annotations}
 
         if self.transform:
-            sample = self.transform(sample)
+            #sample = self.transform(sample)
+            image = self.transform(image)
+            grids_annotations = self.transform(grids_annotations)
 
-        return sample
+        return image, grids_annotations
 
     def build_grids_annotations(self, annotations):
         # grid cell dimension, currently just for 7x7 grid
@@ -92,27 +94,29 @@ class AerialImagesDataset(Dataset):
                 grid_vector[21*objects_in_cell + 5+c] = 0
 
 
-with open('configs/dataset-config.yml') as f:
-    paths = yaml.safe_load(f)
-
-root_csv = paths['train_labels_csv']
-root_img = paths['train_images_path']
-dim = paths['img_dim']
-classes = paths['no_of_classes']
-
-aerial_dataset = AerialImagesDataset(root_csv_files=root_csv, root_img_files=root_img
-                                     , img_dim=dim, no_of_classes=classes)
-
-
 '''
     Example with first 2 images of training dataset.
     Print images shape and vectors for grid cells that
     contain 2 objects.
 '''
-for i in range(2):
-    sample = aerial_dataset[i]
+def example():
+    with open('configs/dataset-config.yml') as f:
+        paths = yaml.safe_load(f)
 
-    print(i, sample['image'].shape)
-    for elem in sample['annotations']:
-        if elem[0] == 1 and elem[21] == 1:
-            print(elem)
+    root_csv = paths['train_labels_csv']
+    root_img = paths['train_images_path']
+    dim = paths['img_dim']
+    classes = paths['no_of_classes']
+
+    aerial_dataset = AerialImagesDataset(root_csv_files=root_csv, root_img_files=root_img
+                                         , img_dim=dim, no_of_classes=classes)
+    for i in range(2):
+        img, annt = aerial_dataset[i]
+
+        print(i, img.shape)
+        for elem in annt:
+            if elem[0] == 1 and elem[21] == 1:
+                print(elem)
+
+
+#example()
