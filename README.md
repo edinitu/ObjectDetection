@@ -8,4 +8,6 @@ This project contains:
   - <b>convertToYOLO</b>: a script that converts the txt annotations which contain coordinates for the 4 points defining the bounding box
   to csv files with YOLO format rows.
   
-  - <b>customDataset</b>: defines a new Dataset based on the Dataset from torch.utils.data. Prepares the dataset to be iterated at training time. 
+  - <b>customDataset</b>: defines a new Dataset based on the Dataset from torch.utils.data. Prepares the dataset to be iterated at training time.
+  
+  - <b>model</b>: Class for the network's final model - 24 convolutional layers + 2 fully connected layers.
