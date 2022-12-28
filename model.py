@@ -38,7 +38,7 @@ class NetworkModel(torch.nn.Module):
         self.fc2 = torch.nn.Linear(4096, 7 * 7 * 42)
 
     def forward(self, x):
-        print('Initial image shape: ', str(x.shape))
+        #print('Initial image shape: ', str(x.shape))
         x = nn.functional.leaky_relu(self.conv1(x), negative_slope=0.1)
         x = nn.functional.max_pool2d(x, (2, 2), 2)
         x = nn.functional.leaky_relu(self.conv2(x), negative_slope=0.1)
@@ -72,11 +72,11 @@ class NetworkModel(torch.nn.Module):
         x = nn.functional.leaky_relu(self.fc1(x), negative_slope=0.1)
         x = self.fc2(x)
 
-        print('Final shape of tensor:', str(x.shape))
+        #print('Final shape of tensor:', str(x.shape))
         return x
 
     def num_flat_features(self, x):
-        size = x.size()  # all dimensions except the batch dimension
+        size = x.size()[1:]  # all dimensions except the batch dimension
         num_features = 1
         for s in size:
             num_features *= s

@@ -37,6 +37,10 @@ class AerialImagesDataset(Dataset):
         if image.shape == (448, 448):
             image = utils.grey2rgb(image)
 
+        # Retain only RGB values from images with an Alpha channel
+        if image.shape == (448, 448, 4):
+            image = image[:, :, 0:3]
+
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)
