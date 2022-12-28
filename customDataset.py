@@ -4,7 +4,8 @@ import yaml
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
-import skimage.io as io
+import matplotlib.pyplot as plt
+import utils
 from pandas.errors import EmptyDataError
 
 
@@ -30,7 +31,12 @@ class AerialImagesDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        image = io.imread(self.images[idx])
+        image = plt.imread(self.images[idx])
+        # Some images from the dataset are greyscale, so they need to be
+        # converted to RGB before placing them as input in the network.
+        if image.shape == (448, 448):
+            image = utils.grey2rgb(image)
+
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)
