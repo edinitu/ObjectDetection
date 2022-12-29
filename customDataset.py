@@ -32,6 +32,7 @@ class AerialImagesDataset(Dataset):
             idx = idx.tolist()
 
         image = plt.imread(self.images[idx])
+        image = image.astype(np.float32)
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
         if image.shape == (448, 448):
@@ -44,6 +45,7 @@ class AerialImagesDataset(Dataset):
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)
+        grids_annotations = grids_annotations.astype(np.float32)
         #sample = {'image': image, 'annotations': grids_annotations}
 
         if self.transform:
