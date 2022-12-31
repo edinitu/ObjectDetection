@@ -42,6 +42,9 @@ class AerialImagesDataset(Dataset):
         if image.shape == (448, 448, 4):
             image = image[:, :, 0:3]
 
+        image = (image - np.mean(image)) / np.std(image)
+        image = (image - np.min(image)) / (np.max(image) - np.mean(image))
+
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)

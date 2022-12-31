@@ -6,6 +6,7 @@ import time
 import torchvision.transforms as tv
 import torch.utils.data
 from torch.utils.data import DataLoader
+import utils
 
 
 def loss_calc(outputs, truth):
@@ -14,6 +15,7 @@ def loss_calc(outputs, truth):
 
     loss = torch.tensor(0, dtype=torch.float32)
     for i in range(outputs.shape[0]):
+        # loss for bbox coords
         for j in range(0, outputs.shape[1], 42):
             for k in range(2):
                 if truth[i, j + (k*21)] == 1:
@@ -28,19 +30,30 @@ def loss_calc(outputs, truth):
 
                     h_out = outputs[i, j + (k * 21) + 4]
                     h_truth = truth[i, j + (k * 21) + 4]
-
+                    try:
+                        assert w_out >= 0 and w_truth >= 0 and h_out >= 0 and h_truth >= 0
+                    except AssertionError:
+                        print(w_out.item(), w_truth.item(), h_out.item(), h_truth.item())
                     loss += (x_out-x_truth)**2 + (y_out - y_truth)**2 + \
-                            (torch.sqrt(abs(w_out)) - torch.sqrt(abs(w_truth)))**2 + \
-                            (torch.sqrt(abs(h_out)) - torch.sqrt(abs(h_truth))) ** 2
+                            (torch.sqrt(w_out) - torch.sqrt(w_truth))**2 + \
+                            (torch.sqrt(h_out) - torch.sqrt(h_truth)) ** 2
                     loss *= niu_coord
 
+        # loss if object is in cell
         for j in range(0, outputs.shape[1], 42):
             for k in range(2):
                 if truth[i, j + (k*21)] == 1:
-                    c_out = outputs[i, j + (k*21)]
-                    c_truth = float(1)
-                    loss += (c_out-c_truth)**2
+                    bbox_out = (outputs[i, j+(k*21)+1], outputs[i, j+(k*21)+2], outputs[i, j+(k*21)+3], outputs[i, j+(k*21)+4])
+                    bbox_truth = (truth[i, j+(k*21)+1], truth[i, j+(k*21)+2], truth[i, j+(k*21)+3], truth[i, j+(k*21)+4])
+                    c_truth = utils.get_iou(bbox_out, bbox_truth)
+                    c_out = outputs[i, j + (k * 21)]
+                    if c_truth < 0 or c_truth > 1:
 
+                        loss += 0
+                    else:
+                        loss += (c_out-c_truth)**2
+
+        # loss if no object is in the cell
         for j in range(0, outputs.shape[1], 42):
             for k in range(2):
                 if truth[i, j + (k*21)] == 0:
@@ -49,6 +62,7 @@ def loss_calc(outputs, truth):
                     loss += (c_out-c_truth)**2
                     loss *= niu_noobj
 
+        # loss for class probabilities
         for j in range(0, outputs.shape[1], 42):
             for k in range(2):
                 if truth[i, j + (k*21)] == 1:
@@ -76,33 +90,39 @@ if __name__ == "__main__":
     network = model.NetworkModel()
 
     print('Loading the dataloader...')
-    dataloader = DataLoader(dataset=aerial_dataset, batch_size=4, shuffle=True, num_workers=1)
+    dataloader = DataLoader(dataset=aerial_dataset, batch_size=1, shuffle=True, num_workers=1)
     print('Dataloader ready')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    learning_rate = 0.001
-    optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
+    learning_rate = 0.0001
+    optimizer = torch.optim.SGD(network.parameters(), lr=learning_rate, weight_decay=1)
 
     print('Begin training loop')
-    for i, (image, annotations) in enumerate(dataloader):
-        loop_begin = time.time_ns()
-        image = image.to(device)
-        annotations = annotations.reshape(-1, 49*42).to(device)
 
-        outputs = network(image)
-        assert annotations.shape == outputs.shape
-        loss = loss_calc(outputs, annotations)
-        loss.backward()
+    running_loss = 0
+    EPOCHS = 10
+    batch_no = 0
+    for epoch in range(EPOCHS):
+        print(f'Epoch {epoch+1}')
+        for i, (image, annotations) in enumerate(dataloader):
+            loop_begin = time.time_ns()
+            image = image.to(device)
+            annotations = annotations.reshape(-1, 49*42).to(device)
 
-        optimizer.step()
+            outputs = network(image)
+            assert annotations.shape == outputs.shape
+            loss = loss_calc(outputs, annotations)
+            loss.backward()
 
-        optimizer.zero_grad()
-        loop_end = time.time_ns()
-        duration = (loop_end - loop_begin) * (10**(-9))
-        print(f'Completed loop {i} in {duration} seconds, loss: {loss.item()}')
+            optimizer.step()
 
+            optimizer.zero_grad()
+            running_loss += loss.item()
 
-
-
-
-
+            if i % 4 == 3:
+                loop_end = time.time_ns()
+                duration = (loop_end - loop_begin) * (10 ** (-9))
+                last_loss = running_loss / 4  # loss per batch
+                print(f'Completed batch {batch_no+1} in {duration} seconds, loss: {last_loss}')
+                batch_no += 1
+                running_loss = 0

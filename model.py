@@ -70,7 +70,7 @@ class NetworkModel(torch.nn.Module):
 
         x = x.view(-1, self.num_flat_features(x))
         x = nn.functional.leaky_relu(self.fc1(x), negative_slope=0.1)
-        x = self.fc2(x)
+        x = nn.functional.relu(self.fc2(x))
 
         #print('Final shape of tensor:', str(x.shape))
         return x
