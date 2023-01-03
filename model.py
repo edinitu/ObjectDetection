@@ -26,7 +26,7 @@ class NetworkModel(torch.nn.Module):
         self.conv16 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1)
         self.conv17 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1)
         self.conv18 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1)
-      #  self.batch_norm1 = nn.BatchNorm2d(1024)
+        self.batch_norm1 = nn.BatchNorm2d(1024)
         self.conv19 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1)
         self.conv20 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1)
         self.conv21 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1)
@@ -76,7 +76,7 @@ class NetworkModel(torch.nn.Module):
         x = self.fc1(x)
         x = nn.functional.leaky_relu(x, negative_slope=0.1)
         x = nn.functional.dropout(x, p=0.5)
-        x = nn.functional.sigmoid(self.fc2(x))
+        x = nn.functional.relu(self.fc2(x))
 
         #print('Final shape of tensor:', str(x.shape))
         return x

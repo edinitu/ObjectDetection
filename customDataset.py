@@ -42,10 +42,11 @@ class AerialImagesDataset(Dataset):
         if image.shape == (448, 448, 4):
             image = image[:, :, 0:3]
 
-      #
-        image = (image - np.mean(image)) / np.std(image)
-        image = (image - np.min(image)) / (np.max(image) - np.mean(image))
 
+      #  image = (image - np.mean(image)) / np.std(image)
+        image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        if np.min(image) < 0 or np.max(image) > 1:
+            raise RuntimeError(f'Image values out of range: max {np.max(image)}, min {np.min(image)}')
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)

@@ -93,7 +93,7 @@ if __name__ == "__main__":
     network = model.NetworkModel()
 
     print('Loading the dataloader...')
-    dataloader = DataLoader(dataset=aerial_dataset, batch_size=4, shuffle=True, num_workers=1)
+    dataloader = DataLoader(dataset=aerial_dataset, batch_size=64, shuffle=True, num_workers=1)
     print('Dataloader ready')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
