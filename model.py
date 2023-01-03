@@ -26,6 +26,7 @@ class NetworkModel(torch.nn.Module):
         self.conv16 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1)
         self.conv17 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1)
         self.conv18 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1)
+      #  self.batch_norm1 = nn.BatchNorm2d(1024)
         self.conv19 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1)
         self.conv20 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1)
         self.conv21 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1)
@@ -34,7 +35,8 @@ class NetworkModel(torch.nn.Module):
         self.conv24 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1)
 
         # define fully connected layers
-        self.fc1 = torch.nn.Linear(7 * 7 * 1024, 4096)  # 6*6 from image dimension
+        self.fc1 = torch.nn.Linear(7 * 7 * 1024, 4096)
+      #  self.batch_norm2 = nn.BatchNorm1d(4096)
         self.fc2 = torch.nn.Linear(4096, 7 * 7 * 42)
 
     def forward(self, x):
@@ -60,17 +62,21 @@ class NetworkModel(torch.nn.Module):
         x = nn.functional.leaky_relu(self.conv16(x), negative_slope=0.1)
         x = nn.functional.max_pool2d(x, (2, 2), 2)
         x = nn.functional.leaky_relu(self.conv17(x), negative_slope=0.1)
-        x = nn.functional.leaky_relu(self.conv18(x), negative_slope=0.1)
+        x = self.conv18(x)
+        x = nn.functional.leaky_relu(x, negative_slope=0.1)
         x = nn.functional.leaky_relu(self.conv19(x), negative_slope=0.1)
         x = nn.functional.leaky_relu(self.conv20(x), negative_slope=0.1)
         x = nn.functional.leaky_relu(self.conv21(x), negative_slope=0.1)
         x = nn.functional.leaky_relu(self.conv22(x), negative_slope=0.1)
         x = nn.functional.leaky_relu(self.conv23(x), negative_slope=0.1)
-        x = nn.functional.leaky_relu(self.conv24(x), negative_slope=0.1)
+        x = self.conv24(x)
+        x = nn.functional.leaky_relu(x, negative_slope=0.1)
 
         x = x.view(-1, self.num_flat_features(x))
-        x = nn.functional.leaky_relu(self.fc1(x), negative_slope=0.1)
-        x = nn.functional.relu(self.fc2(x))
+        x = self.fc1(x)
+        x = nn.functional.leaky_relu(x, negative_slope=0.1)
+        x = nn.functional.dropout(x, p=0.5)
+        x = nn.functional.sigmoid(self.fc2(x))
 
         #print('Final shape of tensor:', str(x.shape))
         return x

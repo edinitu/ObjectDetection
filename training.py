@@ -1,3 +1,5 @@
+import sys
+
 import yaml
 import customDataset as dataset
 import model
@@ -30,13 +32,14 @@ def loss_calc(outputs, truth):
 
                     h_out = outputs[i, j + (k * 21) + 4]
                     h_truth = truth[i, j + (k * 21) + 4]
-                    try:
-                        assert w_out >= 0 and w_truth >= 0 and h_out >= 0 and h_truth >= 0
-                    except AssertionError:
-                        print(w_out.item(), w_truth.item(), h_out.item(), h_truth.item())
+
+                    if not w_out >= 0:
+                        w_out = 0
+                    if not h_out >= 0:
+                        h_out = 0
+
                     loss += (x_out-x_truth)**2 + (y_out - y_truth)**2 + \
-                            (torch.sqrt(w_out) - torch.sqrt(w_truth))**2 + \
-                            (torch.sqrt(h_out) - torch.sqrt(h_truth)) ** 2
+                            (w_out - w_truth)**2 + (h_out - h_truth) ** 2
                     loss *= niu_coord
 
         # loss if object is in cell
@@ -90,7 +93,7 @@ if __name__ == "__main__":
     network = model.NetworkModel()
 
     print('Loading the dataloader...')
-    dataloader = DataLoader(dataset=aerial_dataset, batch_size=1, shuffle=True, num_workers=1)
+    dataloader = DataLoader(dataset=aerial_dataset, batch_size=4, shuffle=True, num_workers=1)
     print('Dataloader ready')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -102,6 +105,8 @@ if __name__ == "__main__":
     running_loss = 0
     EPOCHS = 10
     batch_no = 0
+    torch.autograd.set_detect_anomaly(True)
+    network.train()
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
         for i, (image, annotations) in enumerate(dataloader):
