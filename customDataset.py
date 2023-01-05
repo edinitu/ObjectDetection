@@ -1,4 +1,6 @@
 import os
+import sys
+
 import torch.utils.data
 import yaml
 from torch.utils.data import Dataset
@@ -42,9 +44,13 @@ class AerialImagesDataset(Dataset):
         if image.shape == (448, 448, 4):
             image = image[:, :, 0:3]
 
-
       #  image = (image - np.mean(image)) / np.std(image)
-        image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        try:
+            image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        except RuntimeWarning:
+            print(f'Image max {np.max(image)}, min {np.min(image)}')
+            sys.exit()
+
         if np.min(image) < 0 or np.max(image) > 1:
             raise RuntimeError(f'Image values out of range: max {np.max(image)}, min {np.min(image)}')
         annotations = np.array(self.annotations[idx])

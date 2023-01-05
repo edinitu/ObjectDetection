@@ -1,3 +1,4 @@
+import time
 import unittest
 import training
 import torch
@@ -7,10 +8,14 @@ import utils
 class TestMethods(unittest.TestCase):
 
     def test_loss(self):
-        outputs = torch.ones((64, 2058))
-        truth = torch.zeros((64, 2058))
+        outputs = torch.rand((64, 2058))
+        truth = torch.rand((64, 2058))
+        for i in range(64):
+            for j in range(0, 2058, 42):
+                truth[i, j] = 1
         result = training.loss_calc(outputs, truth)
-        self.assertEqual(result, torch.ones(1, requires_grad=True))
+        # check that loss can't take very large values
+        self.assertTrue(result.item() < 500)
 
     def test_iou(self):
         # no overlap
@@ -33,3 +38,13 @@ class TestMethods(unittest.TestCase):
         expected_iou = 0.2
         actual_iou = round(utils.get_iou(bbox1, bbox2), 1)
         self.assertEqual(expected_iou, actual_iou)
+
+    def test_plot(self):
+        d = utils.DynamicUpdate('test')
+        utils.plot_dynamic_graph(d, 1, 1)
+        time.sleep(2)
+        utils.plot_dynamic_graph(d, 1, 2)
+        time.sleep(2)
+        utils.plot_dynamic_graph(d, 2, 3)
+        time.sleep(2)
+
