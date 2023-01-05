@@ -1,4 +1,6 @@
 import os
+import sys
+
 import torch.utils.data
 import yaml
 from torch.utils.data import Dataset
@@ -32,14 +34,29 @@ class AerialImagesDataset(Dataset):
             idx = idx.tolist()
 
         image = plt.imread(self.images[idx])
+        image = image.astype(np.float32)
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
         if image.shape == (448, 448):
             image = utils.grey2rgb(image)
 
+        # Retain only RGB values from images with an Alpha channel
+        if image.shape == (448, 448, 4):
+            image = image[:, :, 0:3]
+
+      #  image = (image - np.mean(image)) / np.std(image)
+        try:
+            image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        except RuntimeWarning:
+            print(f'Image max {np.max(image)}, min {np.min(image)}')
+            sys.exit()
+
+        if np.min(image) < 0 or np.max(image) > 1:
+            raise RuntimeError(f'Image values out of range: max {np.max(image)}, min {np.min(image)}')
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)
+        grids_annotations = grids_annotations.astype(np.float32)
         #sample = {'image': image, 'annotations': grids_annotations}
 
         if self.transform:
