@@ -44,12 +44,14 @@ class AerialImagesDataset(Dataset):
         if image.shape == (448, 448, 4):
             image = image[:, :, 0:3]
 
-      #  image = (image - np.mean(image)) / np.std(image)
-        try:
+        # Normalize image to have pixel values in [0,1] interval
+        if np.max(image) - np.min(image) != 0:
             image = (image - np.min(image)) / (np.max(image) - np.min(image))
-        except RuntimeWarning:
-            print(f'Image max {np.max(image)}, min {np.min(image)}')
-            sys.exit()
+        else:
+            # if image cannot be normalized, something is wrong, choose another random image
+            index = np.random.randint(0, len(self.images))
+            image, grid_annotations = self.__getitem__(index)
+            return image, grid_annotations
 
         if np.min(image) < 0 or np.max(image) > 1:
             raise RuntimeError(f'Image values out of range: max {np.max(image)}, min {np.min(image)}')
@@ -117,12 +119,12 @@ class AerialImagesDataset(Dataset):
                 grid_vector[21*objects_in_cell + 5+c] = 0
 
 
-'''
-    Example with first 2 images of training dataset.
-    Print images shape and vectors for grid cells that
-    contain 2 objects.
-'''
 def example():
+    """
+        Example with first 2 images of training dataset.
+        Print images shape and vectors for grid cells that
+        contain 2 objects.
+    """
     with open('configs/dataset-config.yml') as f:
         paths = yaml.safe_load(f)
 

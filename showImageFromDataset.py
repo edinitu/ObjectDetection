@@ -3,10 +3,11 @@ import yaml
 import matplotlib.pyplot as plt
 from PIL import Image
 
-'''
-    Python class for displaying an image from DOTA dataset with correspoding bounding boxes.
-'''
+
 class ImageElement:
+    """
+        Python class for displaying an image from DOTA dataset with corresponding bounding boxes.
+    """
     def __init__(self):
         self.bounding_box = []
         self.label = ''

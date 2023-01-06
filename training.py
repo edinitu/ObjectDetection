@@ -1,5 +1,5 @@
 import sys
-
+import os
 import yaml
 import customDataset as dataset
 import model
@@ -16,8 +16,12 @@ def loss_calc(outputs, truth):
     niu_noobj = float(0.5)
 
     loss = torch.tensor(0, dtype=torch.float32)
+    if torch.cuda.is_available():
+        loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float32)
     for i in range(outputs.shape[0]):
-        one_img_loss = 0
+        one_img_loss = torch.tensor(0, dtype=torch.float32)
+        if torch.cuda.is_available():
+            one_img_loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float32)
         # loss for bbox coords
         for j in range(0, outputs.shape[1], 42):
             for k in range(2):
@@ -93,6 +97,8 @@ if __name__ == "__main__":
     print('Dataset ready')
 
     network = model.NetworkModel()
+    if torch.cuda.is_available():
+        network.cuda()
 
     print('Loading the dataloader...')
     dataloader = DataLoader(dataset=aerial_dataset, batch_size=64, shuffle=True, num_workers=1)
@@ -113,7 +119,7 @@ if __name__ == "__main__":
     # init plotting objects
     loss_plot = utils.DynamicUpdate('Loss per batch')
     avg_time_plot = utils.DynamicUpdate('Average processing time')
-    #epoch_loss_plot = utils.DynamicUpdate('Loss per epoch')
+    epoch_loss_plot = utils.DynamicUpdate('Loss per epoch', max_x=EPOCHS)
 
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
@@ -132,14 +138,17 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             running_loss += loss.item()
 
-            # evaluate loss after more batches
-            if i % 1 == 0:
-                loop_end = time.time_ns()
-                duration = (loop_end - loop_begin) * (10 ** (-9))
-                last_loss = running_loss / 1  # loss per batch
-                print(f'Completed batch {batch_no+1} in {duration} seconds, loss: {last_loss}')
-                utils.plot_dynamic_graph(loss_plot, last_loss, batch_no+1)
-                utils.plot_dynamic_graph(avg_time_plot, duration, batch_no+1)
-                batch_no += 1
-                running_loss = 0
-        # TODO Add epoch loss
+            # reporting after 1 batch
+            loop_end = time.time_ns()
+            duration = (loop_end - loop_begin) * (10 ** (-9))
+            # loss per batch
+            print(f'Completed batch {batch_no+1} in {duration} seconds, loss: {loss}')
+            utils.plot_dynamic_graph(loss_plot, loss, batch_no+1)
+            utils.plot_dynamic_graph(avg_time_plot, duration, batch_no+1)
+            batch_no += 1
+
+        # reporting after 1 epoch
+        epoch_loss = running_loss/batch_no
+        utils.plot_dynamic_graph(epoch_loss_plot, epoch_loss, epoch)
+        running_loss = 0
+        batch_no = 0

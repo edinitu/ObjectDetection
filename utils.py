@@ -6,16 +6,20 @@ plt.ion()
 
 
 class DynamicUpdate(Thread):
+    """
+    Class for plotting training statistics: loss per batch, average processing time per batch etc.
+    """
     # Suppose we know the x range
     min_x = 0
-    max_x = 250     # number of batches
+    #max_x = 250     # number of batches
 
-    def __init__(self, title):
+    def __init__(self, title, max_x=250):
         super().__init__()
         self.title = title
         self.on_launch()
         self.xdata = []
         self.ydata = []
+        self.max_x = max_x
 
     def on_launch(self):
         # Set up plot
