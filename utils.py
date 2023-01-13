@@ -16,10 +16,10 @@ class DynamicUpdate(Thread):
     def __init__(self, title, max_x=250):
         super().__init__()
         self.title = title
+        self.max_x = max_x
         self.on_launch()
         self.xdata = []
         self.ydata = []
-        self.max_x = max_x
 
     def on_launch(self):
         # Set up plot
