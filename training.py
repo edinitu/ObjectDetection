@@ -44,7 +44,8 @@ def loss_calc(outputs, truth):
                         h_out = 0
 
                     one_img_loss += (x_out-x_truth)**2 + (y_out - y_truth)**2 + \
-                                    (w_out - w_truth)**2 + (h_out - h_truth) ** 2
+                                    (torch.sqrt(w_out) - torch.sqrt(w_truth))**2 + \
+                                    (torch.sqrt(h_out) - torch.sqrt(h_truth)) ** 2
 
         one_img_loss *= niu_coord
 
@@ -83,26 +84,57 @@ def loss_calc(outputs, truth):
     return loss/outputs.shape[0]
 
 
+def validation_loop(validation_loader, network):
+    network.eval()
+    with torch.no_grad():
+        running_vloss = 0
+        for k, (img, annt) in enumerate(validation_loader):
+            img = img.to(device)
+            annt = annt.reshape(-1, 49 * 42).to(device)
+
+            out = network(img)
+            val_loss = loss_calc(out, annt)
+            print(f'Validation {k} loss: {val_loss}')
+            running_vloss += val_loss.item()
+        print(f'Validation loss: {running_vloss/k}')
+
+
 if __name__ == "__main__":
     with open('configs/dataset-config.yml') as f:
         dataset_paths = yaml.safe_load(f)
 
-    root_csv = dataset_paths['train_labels_csv']
-    root_img = dataset_paths['train_images_path']
+    train_csv = dataset_paths['train_labels_csv']
+    train_img = dataset_paths['train_images_path']
+    validation_csv = dataset_paths['validation_csv_path']
+    validation_img = dataset_paths['validation_images_path']
     dim = dataset_paths['img_dim']
     classes = dataset_paths['no_of_classes']
+    state_file = dataset_paths['state_file']
+    checkpoint = dataset_paths['checkpoint']
 
-    print('Loading the dataset...')
-    aerial_dataset = dataset.AerialImagesDataset(root_csv, root_img, dim, classes, transform=tv.ToTensor())
+    print('Loading the training dataset...')
+    training_dataset = dataset.AerialImagesDataset(train_csv, train_img, dim, classes, transform=tv.ToTensor())
     print('Dataset ready')
+
+    print('Loading the validation dataset...')
+    validation_dataset = dataset.AerialImagesDataset(validation_csv, validation_img, dim, classes, transform=tv.ToTensor())
+    print('Dataset ready')
+
+    print('Loading the training dataloader...')
+    train_loader = DataLoader(dataset=training_dataset, batch_size=64, shuffle=True, num_workers=1)
+    print('Training dataloader ready')
+
+    print('Loading the validation dataloader...')
+    validation_loader = DataLoader(dataset=validation_dataset, batch_size=64, shuffle=True, num_workers=1)
+    print('Validation dataloader ready')
 
     network = model.NetworkModel()
     if torch.cuda.is_available():
         network.cuda()
 
-    print('Loading the dataloader...')
-    dataloader = DataLoader(dataset=aerial_dataset, batch_size=64, shuffle=True, num_workers=1)
-    print('Dataloader ready')
+    if checkpoint:
+        # reload from checkpoint
+        network.load_state_dict(torch.load(state_file))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     learning_rate = 0.0001
@@ -123,7 +155,7 @@ if __name__ == "__main__":
 
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
-        for i, (image, annotations) in enumerate(dataloader):
+        for i, (image, annotations) in enumerate(train_loader):
             loop_begin = time.time_ns()
             image = image.to(device)
             annotations = annotations.reshape(-1, 49*42).to(device)
@@ -143,12 +175,16 @@ if __name__ == "__main__":
             duration = (loop_end - loop_begin) * (10 ** (-9))
             # loss per batch
             print(f'Completed batch {batch_no+1} in {duration} seconds, loss: {loss}')
-            utils.plot_dynamic_graph(loss_plot, loss, batch_no+1)
+            utils.plot_dynamic_graph(loss_plot, loss.item(), batch_no+1)
             utils.plot_dynamic_graph(avg_time_plot, duration, batch_no+1)
+            torch.save(network.state_dict())
             batch_no += 1
 
         # reporting after 1 epoch
         epoch_loss = running_loss/batch_no
+        print(f'Epoch {epoch} loss: {epoch_loss}')
         utils.plot_dynamic_graph(epoch_loss_plot, epoch_loss, epoch)
+        validation_loop(validation_loader, network)
+        network.train()
         running_loss = 0
         batch_no = 0
