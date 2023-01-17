@@ -1,9 +1,6 @@
-import sys
-import os
 import yaml
 import customDataset as dataset
 import model
-import numpy as np
 import time
 import torchvision.transforms as tv
 import torch.utils.data
@@ -44,7 +41,8 @@ def loss_calc(outputs, truth):
                         h_out = 0
 
                     one_img_loss += (x_out-x_truth)**2 + (y_out - y_truth)**2 + \
-                                    (w_out - w_truth)**2 + (h_out - h_truth) ** 2
+                                    (torch.sqrt(w_out) - torch.sqrt(w_truth))**2 + \
+                                    (torch.sqrt(h_out) - torch.sqrt(h_truth)) ** 2
 
         one_img_loss *= niu_coord
 
@@ -96,8 +94,10 @@ def validation_loop(validation_loader, network):
             print(f'Validation {k} loss: {val_loss}')
             running_vloss += val_loss.item()
         print(f'Validation loss: {running_vloss/k}')
+        print('Exit or will continue in 10s...')
+        time.sleep(10)
 
-        
+
 if __name__ == "__main__":
     with open('configs/dataset-config.yml') as f:
         dataset_paths = yaml.safe_load(f)
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         network.cuda()
 
     if checkpoint:
-        # reload from checkpoint
+        print('Reload from checkpoint')
         network.load_state_dict(torch.load(state_file))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -176,12 +176,12 @@ if __name__ == "__main__":
             print(f'Completed batch {batch_no+1} in {duration} seconds, loss: {loss}')
             utils.plot_dynamic_graph(loss_plot, loss.item(), batch_no+1)
             utils.plot_dynamic_graph(avg_time_plot, duration, batch_no+1)
-            torch.save(network.state_dict())
+            torch.save(network.state_dict(), state_file)
             batch_no += 1
 
         # reporting after 1 epoch
         epoch_loss = running_loss/batch_no
-        print(f'Epoch {epoch} loss: {epoch_loss}')
+        print(f'Epoch {epoch+1} loss: {epoch_loss}')
         utils.plot_dynamic_graph(epoch_loss_plot, epoch_loss, epoch)
         validation_loop(validation_loader, network)
         network.train()
