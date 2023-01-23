@@ -1,8 +1,8 @@
-train_images_path: 'C:\edini\images'
-train_labels_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\csv_annotations'
-validation_images_path: 'path'
-validation_csv_path: 'path'
+train_images_path: 'data/images'
+train_labels_csv: 'data/csv_annotations'
+validation_images_path: 'validation/val_images'
+validation_csv_path: 'validation/val_csv'
 state_file: 'state.pt'
-checkpoint: False
+checkpoint: True
 img_dim: 448
 no_of_classes: 16

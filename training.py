@@ -99,7 +99,7 @@ def validation_loop(validation_loader, network):
 
 
 if __name__ == "__main__":
-    with open('configs/dataset-config.yml') as f:
+    with open('ObjectDetection/configs/dataset-config.yml') as f:
         dataset_paths = yaml.safe_load(f)
 
     train_csv = dataset_paths['train_labels_csv']
@@ -136,7 +136,7 @@ if __name__ == "__main__":
         network.load_state_dict(torch.load(state_file))
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    learning_rate = 0.0001
+    learning_rate = 0.01
     optimizer = torch.optim.SGD(network.parameters(), lr=learning_rate, weight_decay=0.0005, momentum=0.9)
 
     print('Begin training loop')
