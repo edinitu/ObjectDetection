@@ -112,7 +112,10 @@ if __name__ == "__main__":
     checkpoint = dataset_paths['checkpoint']
 
     print('Loading the training dataset...')
-    training_dataset = dataset.AerialImagesDataset(train_csv, train_img, dim, classes, transform=tv.ToTensor())
+    transform = tv.Compose([tv.ToTensor(),
+                           tv.RandomAdjustSharpness(sharpness_factor=0.4, p=0.2),
+                           tv.RandomAutocontrast(p=0.3)])
+    training_dataset = dataset.AerialImagesDataset(train_csv, train_img, dim, classes, transform=transform)
     print('Dataset ready')
 
     print('Loading the validation dataset...')
