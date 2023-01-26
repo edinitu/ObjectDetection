@@ -138,8 +138,14 @@ if __name__ == "__main__":
         print('Reload from checkpoint')
         network.load_state_dict(torch.load(state_file))
 
+    layers = 0
+    for param in network.parameters():
+        if layers == 24:
+            break
+        param.requires_grad = False
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    learning_rate = 0.01
+    learning_rate = 0.001
     optimizer = torch.optim.SGD(network.parameters(), lr=learning_rate, weight_decay=0.0005, momentum=0.9)
 
     print('Begin training loop')
@@ -147,6 +153,7 @@ if __name__ == "__main__":
     running_loss = 0
     EPOCHS = 10
     batch_no = 0
+    group_batch_loss = 0
     torch.autograd.set_detect_anomaly(True)
     network.train()
 
@@ -154,11 +161,12 @@ if __name__ == "__main__":
     loss_plot = utils.DynamicUpdate('Loss per batch')
     avg_time_plot = utils.DynamicUpdate('Average processing time')
     epoch_loss_plot = utils.DynamicUpdate('Loss per epoch', max_x=EPOCHS)
-
+    loop_begin = 0
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
         for i, (image, annotations) in enumerate(train_loader):
-            loop_begin = time.time_ns()
+            if i == 0:
+                loop_begin = time.time_ns()
             image = image.to(device)
             annotations = annotations.reshape(-1, 49*42).to(device)
 
@@ -171,22 +179,26 @@ if __name__ == "__main__":
 
             optimizer.zero_grad()
             running_loss += loss.item()
+            group_batch_loss += loss.item()
 
-            # reporting after 1 batch
-            loop_end = time.time_ns()
-            duration = (loop_end - loop_begin) * (10 ** (-9))
-            # loss per batch
-            print(f'Completed batch {batch_no+1} in {duration} seconds, loss: {loss}')
-            utils.plot_dynamic_graph(loss_plot, loss.item(), batch_no+1)
-            utils.plot_dynamic_graph(avg_time_plot, duration, batch_no+1)
-            torch.save(network.state_dict(), state_file)
+            # loss per 10 batches
+            if i % 10 == 0 and i != 0:
+                # reporting after 10 batches
+                loop_end = time.time_ns()
+                duration = (loop_end - loop_begin) * (10 ** (-9))
+                loop_begin = time.time_ns()
+                group_batch_loss = group_batch_loss/10
+                print(f'Completed 10 batches at {batch_no+1} in {duration} seconds, loss: {group_batch_loss}')
+            #utils.plot_dynamic_graph(loss_plot, loss.item(), batch_no+1)
+            #utils.plot_dynamic_graph(avg_time_plot, duration, batch_no+1)
             batch_no += 1
 
         # reporting after 1 epoch
         epoch_loss = running_loss/batch_no
         print(f'Epoch {epoch+1} loss: {epoch_loss}')
-        utils.plot_dynamic_graph(epoch_loss_plot, epoch_loss, epoch)
+        #utils.plot_dynamic_graph(epoch_loss_plot, epoch_loss, epoch)
         validation_loop(validation_loader, network)
+        torch.save(network.state_dict(), state_file)
         network.train()
         running_loss = 0
         batch_no = 0
