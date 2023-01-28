@@ -138,11 +138,11 @@ if __name__ == "__main__":
         print('Reload from checkpoint')
         network.load_state_dict(torch.load(state_file))
 
-    layers = 0
-    for param in network.parameters():
-        if layers == 24:
-            break
-        param.requires_grad = False
+   # layers = 0
+    #for param in network.parameters():
+    #    if layers == 24:
+    #        break
+    #    param.requires_grad = False
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     learning_rate = 0.001
