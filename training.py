@@ -12,9 +12,9 @@ def loss_calc(outputs, truth):
     niu_coord = float(5)
     niu_noobj = float(0.5)
 
-    loss = torch.tensor(0, dtype=torch.float32)
+    loss = torch.tensor(0, dtype=torch.float16)
     if torch.cuda.is_available():
-        loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float32)
+        loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float16)
     for i in range(outputs.shape[0]):
         one_img_loss = torch.tensor(0, dtype=torch.float32)
         if torch.cuda.is_available():
@@ -99,7 +99,7 @@ def validation_loop(validation_loader, network):
 
 
 if __name__ == "__main__":
-    with open('ObjectDetection/configs/dataset-config.yml') as f:
+    with open('configs/dataset-config.yml') as f:
         dataset_paths = yaml.safe_load(f)
 
     train_csv = dataset_paths['train_labels_csv']
@@ -112,9 +112,7 @@ if __name__ == "__main__":
     checkpoint = dataset_paths['checkpoint']
 
     print('Loading the training dataset...')
-    transform = tv.Compose([tv.ToTensor(),
-                           tv.RandomAdjustSharpness(sharpness_factor=0.4, p=0.2),
-                           tv.RandomAutocontrast(p=0.3)])
+    transform = tv.Compose([tv.ToTensor()])
     training_dataset = dataset.AerialImagesDataset(train_csv, train_img, dim, classes, transform=transform)
     print('Dataset ready')
 
@@ -123,11 +121,11 @@ if __name__ == "__main__":
     print('Dataset ready')
 
     print('Loading the training dataloader...')
-    train_loader = DataLoader(dataset=training_dataset, batch_size=64, shuffle=True, num_workers=1)
+    train_loader = DataLoader(dataset=training_dataset, batch_size=16, shuffle=True, num_workers=1)
     print('Training dataloader ready')
 
     print('Loading the validation dataloader...')
-    validation_loader = DataLoader(dataset=validation_dataset, batch_size=64, shuffle=True, num_workers=1)
+    validation_loader = DataLoader(dataset=validation_dataset, batch_size=16, shuffle=True, num_workers=1)
     print('Validation dataloader ready')
 
     network = model.NetworkModel()

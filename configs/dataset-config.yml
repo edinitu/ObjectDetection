@@ -3,6 +3,6 @@ train_labels_csv: 'data/csv_annotations'
 validation_images_path: 'validation/val_images'
 validation_csv_path: 'validation/val_csv'
 state_file: 'state.pt'
-checkpoint: True
+checkpoint: False
 img_dim: 448
 no_of_classes: 16

@@ -8,58 +8,77 @@ class NetworkModel(torch.nn.Module):
         super(NetworkModel, self).__init__()
 
         # define network's convolutional layers
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.conv2 = nn.Conv2d(in_channels=64, out_channels=192, kernel_size=3, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(192)
-        self.conv3 = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(128)
-        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1, bias=False)
-        self.bn4 = nn.BatchNorm2d(256)
-        self.conv5 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=1, bias=False)
-        self.bn5 = nn.BatchNorm2d(256)
-        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False)
-        self.bn6 = nn.BatchNorm2d(512)
-        self.conv7 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False)
-        self.bn7 = nn.BatchNorm2d(256)
-        self.conv8 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False)
-        self.bn8 = nn.BatchNorm2d(512)
-        self.conv9 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False)
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False,
+                               dtype=torch.float16)
+        self.bn1 = nn.BatchNorm2d(64, dtype=torch.float16)
+        self.conv2 = nn.Conv2d(in_channels=64, out_channels=192, kernel_size=3, padding=1, bias=False,
+                               dtype=torch.float16)
+        self.bn2 = nn.BatchNorm2d(192, dtype=torch.float16)
+        self.conv3 = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=1, bias=False,
+                               dtype=torch.float16)
+        self.bn3 = nn.BatchNorm2d(128, dtype=torch.float16)
+        self.conv4 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1, bias=False,
+                               dtype=torch.float16)
+        self.bn4 = nn.BatchNorm2d(256, dtype=torch.float16)
+        self.conv5 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=1, bias=False,
+                               dtype=torch.float16)
+        self.bn5 = nn.BatchNorm2d(256, dtype=torch.float16)
+        self.conv6 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False,
+                               dtype=torch.float16)
+        self.bn6 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv7 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False, dtype=torch.float16)
+        self.bn7 = nn.BatchNorm2d(256, dtype=torch.float16)
+        self.conv8 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False,
+                               dtype=torch.float16)
+        self.bn8 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv9 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False, dtype=torch.float16)
         self.bn9 = nn.BatchNorm2d(256)
-        self.conv10 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False)
-        self.bn10 = nn.BatchNorm2d(512)
-        self.conv11 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False)
-        self.bn11 = nn.BatchNorm2d(256)
-        self.conv12 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False)
-        self.bn12 = nn.BatchNorm2d(512)
-        self.conv13 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False)
-        self.bn13 = nn.BatchNorm2d(256)
-        self.conv14 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False)
-        self.bn14 = nn.BatchNorm2d(512)
-        self.conv15 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=1, bias=False)
-        self.bn15 = nn.BatchNorm2d(512)
-        self.conv16 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1, bias=False)
-        self.bn16 = nn.BatchNorm2d(1024)
-        self.conv17 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, bias=False)
-        self.bn17 = nn.BatchNorm2d(512)
-        self.conv18 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1, bias=False)
-        self.bn18 = nn.BatchNorm2d(1024)
-        self.conv19 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, bias=False)
-        self.bn19 = nn.BatchNorm2d(512)
-        self.conv20 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1, bias=False)
-        self.bn20 = nn.BatchNorm2d(1024)
-        self.conv21 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1, bias=False)
-        self.bn21 = nn.BatchNorm2d(1024)
-        self.conv22 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=2, padding=1, bias=False)
-        self.bn22 = nn.BatchNorm2d(1024)
-        self.conv23 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1, bias=False)
-        self.bn23 = nn.BatchNorm2d(1024)
-        self.conv24 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1, bias=False)
-        self.bn24 = nn.BatchNorm2d(1024)
+        self.conv10 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn10 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv11 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False,
+                                dtype=torch.float16)
+        self.bn11 = nn.BatchNorm2d(256, dtype=torch.float16)
+        self.conv12 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn12 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv13 = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, bias=False, dtype=torch.float16)
+        self.bn13 = nn.BatchNorm2d(256, dtype=torch.float16)
+        self.conv14 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn14 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv15 = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=1, bias=False, dtype=torch.float16)
+        self.bn15 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv16 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn16 = nn.BatchNorm2d(1024, dtype=torch.float16)
+        self.conv17 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, bias=False,
+                                dtype=torch.float16)
+        self.bn17 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv18 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn18 = nn.BatchNorm2d(1024, dtype=torch.float16)
+        self.conv19 = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, bias=False, dtype=torch.float16)
+        self.bn19 = nn.BatchNorm2d(512, dtype=torch.float16)
+        self.conv20 = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn20 = nn.BatchNorm2d(1024, dtype=torch.float16)
+        self.conv21 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn21 = nn.BatchNorm2d(1024, dtype=torch.float16)
+        self.conv22 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=2, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn22 = nn.BatchNorm2d(1024, dtype=torch.float16)
+        self.conv23 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn23 = nn.BatchNorm2d(1024, dtype=torch.float16)
+        self.conv24 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, padding=1, bias=False,
+                                dtype=torch.float16)
+        self.bn24 = nn.BatchNorm2d(1024, dtype=torch.float16)
 
         # define linear layers
-        self.fc1 = nn.Linear(7 * 7 * 1024, 4096)
-        self.fc2 = nn.Linear(4096, 7 * 7 * 42)
+        self.fc1 = nn.Linear(7 * 7 * 1024, 4096, dtype=torch.float16)
+        self.fc2 = nn.Linear(4096, 7 * 7 * 21, dtype=torch.float16)
 
     def forward(self, x):
         # print('Initial image shape: ', str(x.shape))
