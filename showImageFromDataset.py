@@ -103,6 +103,8 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
         for j in range(0, imgwidth, width):
             box = (j, i, j+width, i+height)
             for part in image_parts:
+                if part.get_label() != 'plane':
+                    continue
                 if part.get_bounding_box()[0] >= j and part.get_bounding_box()[1] >= i\
                         and part.get_bounding_box()[4] <= j+width and part.get_bounding_box()[5] <= i+height:
                     bboxes_for_one_piece.append(convert_bbox_to_smaller_image(part.get_bounding_box(), j, i))
@@ -137,6 +139,8 @@ def read_one_image_labels(img_label, dict):
                 break
             img_element.set_bounding_box(line[0:8])
             img_element.set_label(line[8])
+            if img_element.get_label() != 'plane':
+                continue
             if line[8] in dict:
                 img_element.set_number_label(str(dict[line[8]]))
             else:
@@ -222,6 +226,8 @@ else:
     k = 0
     for filename in os.listdir(TRAIN_DATA_PATH):
         elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'), dict)
+        if not elements:
+            continue
         image_path = os.path.join(TRAIN_DATA_PATH, filename)
         img = plt.imread(image_path)
 

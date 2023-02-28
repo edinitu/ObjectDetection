@@ -3,6 +3,6 @@ Paths:
   train_labels_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\DOTA-v1.5_train_hbb'
   cropped_imgs_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
   cropped_labels_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_txt'
-show_one_img: True
+show_one_img: False
 img_to_show: 'P0000'
 cropped_img_piece: 0

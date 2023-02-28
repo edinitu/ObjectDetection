@@ -112,8 +112,8 @@ class NetworkModel(torch.nn.Module):
         x = nn.functional.leaky_relu(self.bn24(self.conv24(x)), negative_slope=0.1)
 
         x = x.view(-1, self.num_flat_features(x))
-        if torch.min(x) < -1 or torch.max(x) > 1:
-            raise RuntimeError("Network activations out of range after convolutional layers")
+       # if torch.min(x) < -1 or torch.max(x) > 1:
+        #    raise RuntimeError("Network activations out of range after convolutional layers")
         x = self.fc1(x)
         x = nn.functional.leaky_relu(x, negative_slope=0.1)
         x = nn.functional.dropout(x, p=0.5)

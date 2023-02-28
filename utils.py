@@ -78,3 +78,17 @@ def plot_dynamic_graph(d, value, batch_no):
     d(value, batch_no)
 
 
+def conv_yolo_2_dota(bbox):
+    """
+    Returns the coordinates of all four vertices of a rectangle given its center and dimensions.
+    """
+    x, y = bbox[0], bbox[1]  # center point coordinates
+    w_half, h_half = bbox[2] / 2, bbox[3] / 2  # half width and half height
+    # calculate the four vertices
+    top_left_x, top_left_y = (x - w_half, y - h_half)
+    top_right_x, top_right_y = (x + w_half, y - h_half)
+    bottom_right_x, bottom_right_y = (x + w_half, y + h_half)
+    bottom_left_x, bottom_left_y = (x - w_half, y + h_half)
+    return [top_left_x, top_left_y, top_right_x, top_right_y, bottom_right_x, bottom_right_y,
+            bottom_left_x, bottom_right_y]
+

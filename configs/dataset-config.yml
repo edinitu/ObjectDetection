@@ -5,4 +5,4 @@ validation_csv_path: 'validation/val_csv'
 state_file: 'state.pt'
 checkpoint: False
 img_dim: 448
-no_of_classes: 16
+no_of_classes: 1

@@ -1,6 +1,7 @@
 import time
 import unittest
 import training
+from convertToYOLOcsv import convertToYOLO
 import torch
 import utils
 
@@ -47,4 +48,10 @@ class TestMethods(unittest.TestCase):
         time.sleep(2)
         utils.plot_dynamic_graph(d, 2, 3)
         time.sleep(2)
+
+    def test_yolo_conversion(self):
+        bbox_initial_points = [100, 100, 400, 100, 400, 400, 100, 400]
+        bbox_yolo = convertToYOLO(bbox_initial_points)
+        bbox_reverse_conversion = utils.conv_yolo_2_dota(bbox_yolo)
+        self.assertEqual(bbox_reverse_conversion, bbox_initial_points)
 
