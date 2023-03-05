@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
+import torch
+from showImageFromDataset import ImageElement
 
 plt.ion()
 
@@ -53,9 +55,70 @@ class DynamicUpdate(Thread):
         return self.xdata, self.ydata
 
 
+class FinalPredictions:
+
+    no_of_grids = 49
+
+    def __init__(self, outputs, truth):
+        self.grids = {}
+        grid_id = 0
+        outputs = torch.reshape(outputs, (49, 6))
+        self.truth = truth
+        for elem in outputs:
+            if elem[0] < 0.4:
+                grid_id += 1
+                continue
+            img_elem = ImageElement()
+            img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
+            img_elem.set_confidence(elem[0])
+            if elem[5] > 0.5:
+                img_elem.set_label('plane')
+            self.grids[grid_id] = img_elem
+            grid_id += 1
+
+        self.non_max_suppression()
+        self.convert_to_dota()
+
+    def non_max_suppression(self):
+        conf_id_map = {}
+        for key in self.grids.keys():
+            conf_id_map[self.grids[key].get_confidence()] = key
+
+        sorted_conf = []
+        for key in conf_id_map.keys():
+            sorted_conf.append(key)
+        sorted_conf.sort(reverse=True)
+
+        for conf in sorted_conf:
+            if conf_id_map[conf] not in self.grids:
+                continue
+            self.remove_overlapped_boxes(conf_id_map[conf])
+
+    def remove_overlapped_boxes(self, reference_key):
+        for key in range(self.no_of_grids):
+            if key != reference_key and key in self.grids:
+                iou = get_iou(self.grids[reference_key].get_yolo_bbox(), self.grids[key].get_yolo_bbox())
+                if iou > 0.5:
+                    del self.grids[key]
+
+    def calc_mAP(self, outputs, truth):
+        pass
+
+    def convert_to_dota(self):
+        for key in self.grids.keys():
+            self.grids[key].convert_yolo_to_dota(key)
+
+    def draw_boxes(self):
+        for elem in self.grids.values():
+            elem.draw_box()
+
+    def get_grids(self):
+        return self.grids
+
+
 def grey2rgb(img):
     assert img.shape == (448, 448)
-    new_img = np.zeros((448, 448, 3), dtype=np.float32)
+    new_img = np.zeros((448, 448, 3), dtype=np.float16)
     new_img[:, :, 0] = img
     new_img[:, :, 1] = img
     new_img[:, :, 2] = img
@@ -78,17 +141,64 @@ def plot_dynamic_graph(d, value, batch_no):
     d(value, batch_no)
 
 
-def conv_yolo_2_dota(bbox):
-    """
-    Returns the coordinates of all four vertices of a rectangle given its center and dimensions.
-    """
-    x, y = bbox[0], bbox[1]  # center point coordinates
-    w_half, h_half = bbox[2] / 2, bbox[3] / 2  # half width and half height
-    # calculate the four vertices
-    top_left_x, top_left_y = (x - w_half, y - h_half)
-    top_right_x, top_right_y = (x + w_half, y - h_half)
-    bottom_right_x, bottom_right_y = (x + w_half, y + h_half)
-    bottom_left_x, bottom_left_y = (x - w_half, y + h_half)
-    return [top_left_x, top_left_y, top_right_x, top_right_y, bottom_right_x, bottom_right_y,
-            bottom_left_x, bottom_right_y]
+def convert_to_box_coordinates(x, y, w, h, grid_id):
+    bbox = []
+
+    real_x = x * ((int(grid_id / 7) + 1) * 64)
+    real_y = y * ((int(grid_id) % 7 + 1) * 64)
+    real_w = w * 448
+    real_h = h * 448
+
+    # calculate x and y coordinates of the top-left corner of the rectangle
+    x1 = real_x - real_w / 2
+    y1 = real_y - real_h / 2
+    bbox.append(np.round(x1))
+    bbox.append(np.round(y1))
+
+    # calculate x and y coordinates of the top-right corner of the rectangle
+    x2 = real_x + real_w / 2
+    y2 = real_y - real_h / 2
+    bbox.append(np.round(x2))
+    bbox.append(np.round(y2))
+
+    # calculate x and y coordinates of the bottom-right corner of the rectangle
+    x3 = real_x + real_w / 2
+    y3 = real_y + real_h / 2
+    bbox.append(np.round(x3))
+    bbox.append(np.round(y3))
+
+    # calculate x and y coordinates of the bottom-left corner of the rectangle
+    x4 = real_x - real_w / 2
+    y4 = real_y + real_h / 2
+    bbox.append(np.round(x4))
+    bbox.append(np.round(y4))
+
+    return bbox
+
+
+def draw_all_bboxes_from_annotations(annt):
+    annt = torch.reshape(annt, (49, 6))
+    img = ImageElement()
+    grid_id = 0
+    for elem in annt:
+        if elem[0] > 0.4:
+            bbox = convert_to_box_coordinates(elem[1], elem[2], elem[3], elem[4], grid_id)
+            img.set_bbox(bbox)
+            img.draw_box()
+        grid_id += 1
+
+
+# def conv_yolo_2_dota(bbox):
+#     """
+#     Returns the coordinates of all four vertices of a rectangle given its center and dimensions.
+#     """
+#     x, y = bbox[0], bbox[1]  # center point coordinates
+#     w_half, h_half = bbox[2] / 2, bbox[3] / 2  # half width and half height
+#     # calculate the four vertices
+#     top_left_x, top_left_y = (x - w_half, y - h_half)
+#     top_right_x, top_right_y = (x + w_half, y - h_half)
+#     bottom_right_x, bottom_right_y = (x + w_half, y + h_half)
+#     bottom_left_x, bottom_left_y = (x - w_half, y + h_half)
+#     return [top_left_x, top_left_y, top_right_x, top_right_y, bottom_right_x, bottom_right_y,
+#             bottom_left_x, bottom_right_y]
 

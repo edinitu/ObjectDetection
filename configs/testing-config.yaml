@@ -1,0 +1,5 @@
+weights: 'C:\Users\edini\Desktop\planes2.pt'
+testing_img: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
+testing_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
+dim: 448
+classes: 1

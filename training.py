@@ -164,7 +164,7 @@ if __name__ == "__main__":
             if i == 0:
                 loop_begin = time.time_ns()
             image = image.to(device)
-            annotations = annotations.reshape(-1, 49*42).to(device)
+            annotations = annotations.reshape(-1, 49*6).to(device)
 
             outputs = network(image)
             assert annotations.shape == outputs.shape

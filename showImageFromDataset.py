@@ -3,6 +3,8 @@ import yaml
 import matplotlib.pyplot as plt
 from PIL import Image
 
+import utils
+
 
 class ImageElement:
     """
@@ -13,6 +15,8 @@ class ImageElement:
         self.label = ''
         self.number_label = 0
         self.image_metadata = ImageMetadata()
+        self.confidence = 0
+        self.yolo_bbox = []
 
     def set_bounding_box(self, coordinates):
         for coordinate in coordinates:
@@ -41,6 +45,27 @@ class ImageElement:
 
     def set_bbox(self, bbox):
         self.bounding_box = bbox
+
+    def set_confidence(self, confidence):
+        self.confidence = confidence
+
+    def get_confidence(self):
+        return self.confidence
+
+    def set_yolo_bbox(self, yolo_bbox):
+        self.yolo_bbox = yolo_bbox
+
+    def get_yolo_bbox(self):
+        return self.yolo_bbox
+
+    def convert_yolo_to_dota(self, grid_id):
+        self.bounding_box = utils.convert_to_box_coordinates(
+            self.yolo_bbox[0],
+            self.yolo_bbox[1],
+            self.yolo_bbox[2],
+            self.yolo_bbox[3],
+            grid_id
+        )
 
     def draw_box(self):
         x = []
@@ -107,6 +132,7 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
                     continue
                 if part.get_bounding_box()[0] >= j and part.get_bounding_box()[1] >= i\
                         and part.get_bounding_box()[4] <= j+width and part.get_bounding_box()[5] <= i+height:
+
                     bboxes_for_one_piece.append(convert_bbox_to_smaller_image(part.get_bounding_box(), j, i))
                     bbox_to_write = convert_bbox_to_smaller_image(part.get_bounding_box(), j, i)
                     path = os.path.join(txt_path, input[len(input)-9:len(input)-4] + "-" + str(k) + ".txt")
@@ -164,78 +190,79 @@ def convert_bbox_to_smaller_image(bbox, j, i):
     return new_bbox
 
 
-# load necessary configs from yaml file
-with open('configs/showIMG-config.yml') as f:
-    configMap = yaml.safe_load(f)
+if __name__ == '__main__':
+    # load necessary configs from yaml file
+    with open('configs/showIMG-config.yml') as f:
+        configMap = yaml.safe_load(f)
 
-paths = configMap['Paths']
-TRAIN_DATA_PATH = paths['train_data_path']
-TRAIN_LABELS_PATH = paths['train_labels_path']
+    paths = configMap['Paths']
+    TRAIN_DATA_PATH = paths['train_data_path']
+    TRAIN_LABELS_PATH = paths['train_labels_path']
 
-# labels map
-dict = {}
-n = 0
+    # labels map
+    dict = {}
+    n = 0
 
-option = configMap['show_one_img']
+    option = configMap['show_one_img']
 
-#   If we set the option in the config to show only one image, then the script will
-# plot that image with its bounding boxes drawn and also (for demo purposes) another
-# plot with a 'piece' of 448x448 cropped from the original image with its bounding
-# boxes. If the option is not set, then the script will automatically crop all images
-# from a folder, calculate the new bounding boxes and load them in 2 different folders:
-# one for the new cropped images and one for the new annotations.
-if option:
-    item = configMap['img_to_show']
-    image_cropped_path = paths['cropped_imgs_path']
-    elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'), dict)
-    image_path = os.path.join(TRAIN_DATA_PATH, item + '.png')
-    img = plt.imread(image_path)
-
-    plt.figure()
-    # Get original image bounding boxes and show image with them.
-    image_parts = []
-    for element in elements:
-        image_parts.append(element)
-        element.draw_box()
-
-    plt.imshow(img)
-    plt.plot()
-
-    new_txt_annotations = paths['cropped_labels_path']
-    # Get new bboxes for cropped parts of original image
-    k = 0
-    new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)
-
-    # show one "cut" of the bigger image with its bounding boxes
-    image_piece_number = str(configMap['cropped_img_piece'])
-    cropped_imgs_path = os.path.join(image_cropped_path, item + '-' + image_piece_number + '.png')
-    img = plt.imread(cropped_imgs_path)
-    plt.figure()
-
-    for i in range(len(new_bboxes[int(image_piece_number)])):
-        elements[i].set_bbox(new_bboxes[int(image_piece_number)][i])
-        elements[i].draw_box()
-
-    plt.imshow(img)
-    plt.plot()
-    plt.show()
-
-else:
-    image_cropped_path = paths['cropped_imgs_path']
-    new_txt_annotations = paths['cropped_labels_path']
-    k = 0
-    for filename in os.listdir(TRAIN_DATA_PATH):
-        elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'), dict)
-        if not elements:
-            continue
-        image_path = os.path.join(TRAIN_DATA_PATH, filename)
+    #   If we set the option in the config to show only one image, then the script will
+    # plot that image with its bounding boxes drawn and also (for demo purposes) another
+    # plot with a 'piece' of 448x448 cropped from the original image with its bounding
+    # boxes. If the option is not set, then the script will automatically crop all images
+    # from a folder, calculate the new bounding boxes and load them in 2 different folders:
+    # one for the new cropped images and one for the new annotations.
+    if option:
+        item = configMap['img_to_show']
+        image_cropped_path = paths['cropped_imgs_path']
+        elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'), dict)
+        image_path = os.path.join(TRAIN_DATA_PATH, item + '.png')
         img = plt.imread(image_path)
 
-        # Get all image elements from the original image: bounding boxes and labels.
+        plt.figure()
+        # Get original image bounding boxes and show image with them.
         image_parts = []
         for element in elements:
             image_parts.append(element)
+            element.draw_box()
 
-        # Crop image into 448x448 parts, calculate new bounding boxes coordinates and save them to
-        # new txt files.
+        plt.imshow(img)
+        plt.plot()
+
+        new_txt_annotations = paths['cropped_labels_path']
+        # Get new bboxes for cropped parts of original image
+        k = 0
         new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)
+
+        # show one "cut" of the bigger image with its bounding boxes
+        image_piece_number = str(configMap['cropped_img_piece'])
+        cropped_imgs_path = os.path.join(image_cropped_path, item + '-' + image_piece_number + '.png')
+        img = plt.imread(cropped_imgs_path)
+        plt.figure()
+
+        for i in range(len(new_bboxes[int(image_piece_number)])):
+            elements[i].set_bbox(new_bboxes[int(image_piece_number)][i])
+            elements[i].draw_box()
+
+        plt.imshow(img)
+        plt.plot()
+        plt.show()
+
+    else:
+        image_cropped_path = paths['cropped_imgs_path']
+        new_txt_annotations = paths['cropped_labels_path']
+        k = 0
+        for filename in os.listdir(TRAIN_DATA_PATH):
+            elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'), dict)
+            if not elements:
+                continue
+            image_path = os.path.join(TRAIN_DATA_PATH, filename)
+            img = plt.imread(image_path)
+
+            # Get all image elements from the original image: bounding boxes and labels.
+            image_parts = []
+            for element in elements:
+                image_parts.append(element)
+
+            # Crop image into 448x448 parts, calculate new bounding boxes coordinates and save them to
+            # new txt files.
+            new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)

@@ -4,9 +4,10 @@ import torch.nn as nn
 
 class NetworkModel(torch.nn.Module):
 
-    def __init__(self):
+    def __init__(self, testing=False):
         super(NetworkModel, self).__init__()
 
+        self.testing = False
         # define network's convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False,
                                dtype=torch.float16)
@@ -78,7 +79,7 @@ class NetworkModel(torch.nn.Module):
 
         # define linear layers
         self.fc1 = nn.Linear(7 * 7 * 1024, 4096, dtype=torch.float16)
-        self.fc2 = nn.Linear(4096, 7 * 7 * 21, dtype=torch.float16)
+        self.fc2 = nn.Linear(4096, 7 * 7 * 6, dtype=torch.float16)
 
     def forward(self, x):
         # print('Initial image shape: ', str(x.shape))
@@ -116,7 +117,8 @@ class NetworkModel(torch.nn.Module):
         #    raise RuntimeError("Network activations out of range after convolutional layers")
         x = self.fc1(x)
         x = nn.functional.leaky_relu(x, negative_slope=0.1)
-        x = nn.functional.dropout(x, p=0.5)
+        if not self.testing:
+            x = nn.functional.dropout(x, p=0.5)
         x = nn.functional.relu(self.fc2(x))
         if torch.max(x) > 1.5:
             print(f'Max value: {torch.max(x)}')
