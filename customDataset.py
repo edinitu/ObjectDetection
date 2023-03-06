@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import utils
 from pandas.errors import EmptyDataError
 
+# TODO Refactor config files in 2 general files: pre-process-config and model-config
+
 
 class AerialImagesDataset(Dataset):
     def __init__(self, root_csv_files, root_img_files, img_dim, no_of_classes, transform=None):
@@ -70,6 +72,7 @@ class AerialImagesDataset(Dataset):
     def build_grids_annotations(self, annotations):
         # grid cell dimension, currently just for 7x7 grid
         # TODO add grid dimensions to dataset-config and make it class field.
+        # TODO add number of detection per grid to dataset-config
         grid_dim = int(self.img_dim/7)
         img_ground_truth = []
         # Loop through grid cells

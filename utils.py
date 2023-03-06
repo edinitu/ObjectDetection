@@ -54,18 +54,30 @@ class DynamicUpdate(Thread):
 
         return self.xdata, self.ydata
 
+# TODO Define list of PredictionStats objects and pass it to AveragePrecision to compute it
+
 
 class FinalPredictions:
-
+    # TODO This should be configurable
     no_of_grids = 49
 
     def __init__(self, outputs, truth):
         self.grids = {}
+        self.truth = {}
         grid_id = 0
         outputs = torch.reshape(outputs, (49, 6))
-        self.truth = truth
+        truth = torch.reshape(outputs, (49, 6))
+        count = 0
+        for elem in truth:
+            if elem[0] == 1:
+                img_elem = ImageElement()
+                img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
+                img_elem.set_label('plane')
+                self.truth[count] = img_elem
+            count += 1
+
         for elem in outputs:
-            if elem[0] < 0.4:
+            if elem[0] < 0.3:
                 grid_id += 1
                 continue
             img_elem = ImageElement()
@@ -79,6 +91,7 @@ class FinalPredictions:
         self.non_max_suppression()
         self.convert_to_dota()
 
+    # TODO Define unit test for this
     def non_max_suppression(self):
         conf_id_map = {}
         for key in self.grids.keys():
@@ -98,10 +111,11 @@ class FinalPredictions:
         for key in range(self.no_of_grids):
             if key != reference_key and key in self.grids:
                 iou = get_iou(self.grids[reference_key].get_yolo_bbox(), self.grids[key].get_yolo_bbox())
-                if iou > 0.5:
+                if iou > 0.4:
                     del self.grids[key]
 
-    def calc_mAP(self, outputs, truth):
+    def add_to_stats_list(self):
+        # TODO Populate a list of confidences and confusions
         pass
 
     def convert_to_dota(self):

@@ -7,7 +7,7 @@ class NetworkModel(torch.nn.Module):
     def __init__(self, testing=False):
         super(NetworkModel, self).__init__()
 
-        self.testing = False
+        self.testing = testing
         # define network's convolutional layers
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, stride=2, padding=3, bias=False,
                                dtype=torch.float16)
@@ -79,6 +79,7 @@ class NetworkModel(torch.nn.Module):
 
         # define linear layers
         self.fc1 = nn.Linear(7 * 7 * 1024, 4096, dtype=torch.float16)
+        # TODO make this layer configurable based on the number of classes we want to detect
         self.fc2 = nn.Linear(4096, 7 * 7 * 6, dtype=torch.float16)
 
     def forward(self, x):
@@ -137,6 +138,12 @@ class NetworkModel(torch.nn.Module):
         print('Network layers: ')
         for elem in self.__dict__.get('_modules').values():
             print(elem)
+
+    def set_testing(self):
+        self.testing = True
+
+    def set_training(self):
+        self.testing = False
 
 
 def example():

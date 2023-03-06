@@ -34,6 +34,7 @@ if __name__ == "__main__":
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    # TODO Here just pass the output and log the metrics at the end
     for i, (image, annotations, img_path) in enumerate(test_loader):
         image = image.to(device)
         annotations = annotations.reshape(-1, 49 * 6)
@@ -46,7 +47,7 @@ if __name__ == "__main__":
         final_pred.draw_boxes()
         plt.imshow(img)
         #final_pred.calc_mAP(outputs.cpu(), annotations)
-        if i == 1:
+        if i == 9:
             plt.show(block=True)
             break
 
