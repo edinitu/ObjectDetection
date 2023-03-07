@@ -4,6 +4,7 @@ import training
 from convertToYOLOcsv import convertToYOLO
 import torch
 import utils
+from metrics import PredictionStats, AveragePrecision, TRUE_POSITIVE, FALSE_POSITIVE
 
 
 class TestMethods(unittest.TestCase):
@@ -54,4 +55,21 @@ class TestMethods(unittest.TestCase):
         bbox_yolo = convertToYOLO(bbox_initial_points)
         bbox_reverse_conversion = utils.conv_yolo_2_dota(bbox_yolo)
         self.assertEqual(bbox_reverse_conversion, bbox_initial_points)
+
+    def test_average_precision(self):
+        image_predictions = [
+            PredictionStats(0.9, TRUE_POSITIVE),
+            PredictionStats(0.8, FALSE_POSITIVE),
+            PredictionStats(0.7, TRUE_POSITIVE),
+            PredictionStats(0.6, FALSE_POSITIVE),
+            PredictionStats(0.5, TRUE_POSITIVE),
+            PredictionStats(0.3, FALSE_POSITIVE),
+            PredictionStats(0.2, FALSE_POSITIVE)
+        ]
+        avg = AveragePrecision(image_predictions, 4)
+        self.assertEqual(0.533, round(avg.get_average_precision(), 3))
+
+        image_predictions[0] = PredictionStats(0.9, FALSE_POSITIVE)
+        avg = AveragePrecision(image_predictions, 4)
+        self.assertEqual(0.123, round(avg.get_average_precision(), 3))
 
