@@ -4,6 +4,7 @@ import customDataset as dataset
 import torchvision.transforms as tv
 from torch.utils.data import DataLoader
 import utils
+from metrics import AveragePrecision
 import matplotlib.pyplot as plt
 from model import NetworkModel
 
@@ -43,13 +44,16 @@ if __name__ == "__main__":
 
         img = plt.imread(*img_path)
         final_pred = utils.FinalPredictions(outputs.cpu(), annotations)
-        plt.figure()
-        final_pred.draw_boxes()
-        plt.imshow(img)
-        #final_pred.calc_mAP(outputs.cpu(), annotations)
-        if i == 9:
-            plt.show(block=True)
-            break
+        # annt_test = utils.FinalPredictions(annotations, annotations)
+        # plt.figure()
+        # final_pred.draw_boxes()
+        # annt_test.draw_boxes(other_color=True)
+        # plt.imshow(img)
+        # plt.show(block=True)
+        # test = utils.all_detections
+
+    ap = AveragePrecision(utils.all_detections, utils.positives)
+    print(ap.get_average_precision())
 
 
 

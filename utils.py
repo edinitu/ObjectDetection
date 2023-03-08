@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from threading import Thread
 import torch
 from showImageFromDataset import ImageElement
+from metrics import PredictionStats, TRUE_POSITIVE, FALSE_POSITIVE
+import torchvision.ops.boxes as bops
 
 plt.ion()
 
@@ -54,30 +56,33 @@ class DynamicUpdate(Thread):
 
         return self.xdata, self.ydata
 
+
 # TODO Define list of PredictionStats objects and pass it to AveragePrecision to compute it
+all_detections = []
+positives = 0
 
 
 class FinalPredictions:
     # TODO This should be configurable
     no_of_grids = 49
 
-    def __init__(self, outputs, truth):
+    def __init__(self, outputs, truths):
         self.grids = {}
-        self.truth = {}
+        self.truths = {}
         grid_id = 0
         outputs = torch.reshape(outputs, (49, 6))
-        truth = torch.reshape(outputs, (49, 6))
+        truths = torch.reshape(truths, (49, 6))
         count = 0
-        for elem in truth:
+        for elem in truths:
             if elem[0] == 1:
                 img_elem = ImageElement()
                 img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
                 img_elem.set_label('plane')
-                self.truth[count] = img_elem
+                self.truths[count] = img_elem
             count += 1
 
         for elem in outputs:
-            if elem[0] < 0.3:
+            if elem[0] < 0.4:
                 grid_id += 1
                 continue
             img_elem = ImageElement()
@@ -90,6 +95,7 @@ class FinalPredictions:
 
         self.non_max_suppression()
         self.convert_to_dota()
+        self.add_to_stats_list()
 
     # TODO Define unit test for this
     def non_max_suppression(self):
@@ -110,21 +116,50 @@ class FinalPredictions:
     def remove_overlapped_boxes(self, reference_key):
         for key in range(self.no_of_grids):
             if key != reference_key and key in self.grids:
-                iou = get_iou(self.grids[reference_key].get_yolo_bbox(), self.grids[key].get_yolo_bbox())
+                iou = get_iou_new(
+                    convert_to_yolo_full_scale(self.grids[reference_key].get_yolo_bbox(), reference_key),
+                    convert_to_yolo_full_scale(self.grids[key].get_yolo_bbox(), key)
+                )
                 if iou > 0.4:
                     del self.grids[key]
 
     def add_to_stats_list(self):
-        # TODO Populate a list of confidences and confusions
-        pass
+        """
+        Here we populate the list with all detections in the testing set. They can either be
+        true positives or false positives. Also increment the number of ground truths positives.
+        """
+        for pred_key in self.grids.keys():
+            count = 0
+            for truth_key in self.truths.keys():
+                iou = get_iou_new(
+                    convert_to_yolo_full_scale(self.grids[pred_key].get_yolo_bbox(), pred_key),
+                    convert_to_yolo_full_scale(self.truths[truth_key].get_yolo_bbox(), truth_key)
+                )
+                if iou > 0.3:
+                    all_detections.append(
+                        PredictionStats(self.grids[pred_key].get_confidence(), TRUE_POSITIVE)
+                    )
+                    count += 1
+                    break
+            if count == 0:
+                all_detections.append(
+                    PredictionStats(self.grids[pred_key].get_confidence(), FALSE_POSITIVE)
+                )
+
+        global positives
+        positives += len(self.truths.keys())
 
     def convert_to_dota(self):
         for key in self.grids.keys():
             self.grids[key].convert_yolo_to_dota(key)
 
-    def draw_boxes(self):
-        for elem in self.grids.values():
-            elem.draw_box()
+    def draw_boxes(self, other_color=False):
+        if other_color:
+            for elem in self.grids.values():
+                elem.draw_box(color='red')
+        else:
+            for elem in self.grids.values():
+                elem.draw_box()
 
     def get_grids(self):
         return self.grids
@@ -139,7 +174,32 @@ def grey2rgb(img):
     return new_img
 
 
+def get_iou_new(bbox1, bbox2):
+    boxA = [bbox1[0] - bbox1[2] / 2, bbox1[1] - bbox1[3] / 2, bbox1[0] + bbox1[2] / 2, bbox1[1] + bbox1[3] / 2]
+    boxB = [bbox2[0] - bbox2[2] / 2, bbox2[1] - bbox2[3] / 2, bbox2[0] + bbox2[2] / 2, bbox2[1] + bbox2[3] / 2]
+
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    # Calculate the area of intersection rectangle
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+
+    # Calculate the area of the two bounding boxes
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+    # Calculate the IOU
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+
+    # Return the IOU
+    return iou
+
+
 def get_iou(bbox1, bbox2):
+    bbox1 = [bbox1[0] - bbox1[2] / 2, bbox1[1] - bbox1[3] / 2, bbox1[2], bbox1[3]]
+    bbox2 = [bbox2[0] - bbox2[2] / 2, bbox2[1] - bbox2[3] / 2, bbox2[2], bbox2[3]]
     x1, y1, w1, h1 = bbox1
     x2, y2, w2, h2 = bbox2
     w_intersection = min(x1 + w1, x2 + w2) - max(x1, x2)
@@ -153,6 +213,14 @@ def get_iou(bbox1, bbox2):
 
 def plot_dynamic_graph(d, value, batch_no):
     d(value, batch_no)
+
+
+def convert_to_yolo_full_scale(bbox, grid_id):
+    real_x = bbox[0] * ((int(grid_id / 7) + 1) * 64)
+    real_y = bbox[1] * ((int(grid_id) % 7 + 1) * 64)
+    real_w = bbox[2] * 448
+    real_h = bbox[3] * 448
+    return [real_x, real_y, real_w, real_h]
 
 
 def convert_to_box_coordinates(x, y, w, h, grid_id):
