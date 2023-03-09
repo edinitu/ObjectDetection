@@ -12,9 +12,12 @@ from pandas.errors import EmptyDataError
 
 
 class AerialImagesDataset(Dataset):
+
     def __init__(self, root_csv_files, root_img_files, img_dim, no_of_classes, transform=None):
         self.img_dim = img_dim
         self.no_of_classes = no_of_classes
+        if not root_csv_files:
+            return
         self.annotations = []
         self.images = []
         for csv_file in sorted(os.listdir(root_csv_files)):
@@ -25,6 +28,10 @@ class AerialImagesDataset(Dataset):
         for image in sorted(os.listdir(root_img_files)):
             self.images.append(os.path.join(root_img_files, image))
         self.transform = transform
+
+    @classmethod
+    def no_args_construct(cls):
+        return cls(None, None, 448, 1)
 
     def __len__(self):
         return len(self.images)

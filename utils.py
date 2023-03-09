@@ -82,7 +82,7 @@ class FinalPredictions:
             count += 1
 
         for elem in outputs:
-            if elem[0] < 0.4:
+            if elem[0] < 0.3:
                 grid_id += 1
                 continue
             img_elem = ImageElement()
@@ -135,6 +135,7 @@ class FinalPredictions:
                     convert_to_yolo_full_scale(self.grids[pred_key].get_yolo_bbox(), pred_key),
                     convert_to_yolo_full_scale(self.truths[truth_key].get_yolo_bbox(), truth_key)
                 )
+            #    print(iou)
                 if iou > 0.3:
                     all_detections.append(
                         PredictionStats(self.grids[pred_key].get_confidence(), TRUE_POSITIVE)
@@ -184,22 +185,23 @@ def get_iou_new(bbox1, bbox2):
     yB = min(boxA[3], boxB[3])
 
     # Calculate the area of intersection rectangle
-    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    interArea = max(torch.tensor(0), xB - xA + 1) * max(torch.tensor(0), yB - yA + 1)
+   # interArea = interArea.to(torch.float32)
 
     # Calculate the area of the two bounding boxes
     boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+  #  boxAArea = boxAArea.to(torch.float32)
+   # boxBArea = boxBArea.to(torch.float32)
 
     # Calculate the IOU
-    iou = interArea / float(boxAArea + boxBArea - interArea)
+    iou = interArea / (boxAArea + boxBArea - interArea)
 
     # Return the IOU
     return iou
 
 
 def get_iou(bbox1, bbox2):
-    bbox1 = [bbox1[0] - bbox1[2] / 2, bbox1[1] - bbox1[3] / 2, bbox1[2], bbox1[3]]
-    bbox2 = [bbox2[0] - bbox2[2] / 2, bbox2[1] - bbox2[3] / 2, bbox2[2], bbox2[3]]
     x1, y1, w1, h1 = bbox1
     x2, y2, w2, h2 = bbox2
     w_intersection = min(x1 + w1, x2 + w2) - max(x1, x2)

@@ -1,3 +1,5 @@
+import sys
+
 import yaml
 import customDataset as dataset
 import model
@@ -6,15 +8,16 @@ import torchvision.transforms as tv
 import torch.utils.data
 from torch.utils.data import DataLoader
 import utils
+from metrics import AveragePrecision
 
 
 def loss_calc(outputs, truth):
     niu_coord = float(5)
     niu_noobj = float(0.5)
 
-    loss = torch.tensor(0, dtype=torch.float16)
+    loss = torch.tensor(0, dtype=torch.float32)
     if torch.cuda.is_available():
-        loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float16)
+        loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float32)
     for i in range(outputs.shape[0]):
         one_img_loss = torch.tensor(0, dtype=torch.float32)
         if torch.cuda.is_available():
@@ -52,7 +55,7 @@ def loss_calc(outputs, truth):
                 if truth[i, j + (k*21)] == 1:
                     bbox_out = (outputs[i, j+(k*21)+1], outputs[i, j+(k*21)+2], outputs[i, j+(k*21)+3], outputs[i, j+(k*21)+4])
                     bbox_truth = (truth[i, j+(k*21)+1], truth[i, j+(k*21)+2], truth[i, j+(k*21)+3], truth[i, j+(k*21)+4])
-                    c_truth = utils.get_iou(bbox_out, bbox_truth)
+                    c_truth = utils.get_iou_new(bbox_out, bbox_truth)
                     c_out = outputs[i, j + (k * 21)]
                     if c_truth < 0 or c_truth > 1:
                         one_img_loss += 0
@@ -84,16 +87,25 @@ def loss_calc(outputs, truth):
 def validation_loop(validation_loader, network):
     network.eval()
     with torch.no_grad():
-        running_vloss = 0
+        # running_vloss = 0
+        c = '|'
+        sys.stdout.write('Computing avarage precision for validation set...\n')
         for k, (img, annt) in enumerate(validation_loader):
             img = img.to(device)
-            annt = annt.reshape(-1, 49 * 42).to(device)
+            annt = annt.reshape(-1, 49 * 6).to(device)
 
             out = network(img)
-            val_loss = loss_calc(out, annt)
-            print(f'Validation {k} loss: {val_loss}')
-            running_vloss += val_loss.item()
-        print(f'Validation loss: {running_vloss/k}')
+            _ = utils.FinalPredictions(out.to(torch.float32), annt.to(torch.float32))
+            sys.stdout.write(c)
+            c += c
+            sys.stdout.flush()
+
+        #    val_loss = loss_calc(out, annt)
+        #     print(f'Validation {k} loss: {val_loss}')
+        #     running_vloss += val_loss.item()
+        # print(f'Validation loss: {running_vloss/k}')
+        ap = AveragePrecision(utils.all_detections, utils.positives)
+        print(f'Validation avarage precision: {ap.get_average_precision()}')
         print('Exit or will continue in 10s...')
         time.sleep(10)
 
@@ -136,18 +148,18 @@ if __name__ == "__main__":
         print('Reload from checkpoint')
         network.load_state_dict(torch.load(state_file))
 
-    for param in network.parameters():
-        if len(param.data.shape) == 4:
-            param.requires_grad = False
+    # for param in network.parameters():
+    #     if len(param.data.shape) == 4:
+    #         param.requires_grad = False
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    learning_rate = 0.001
+    learning_rate = 0.0001
     optimizer = torch.optim.SGD(network.parameters(), lr=learning_rate, weight_decay=0.0005, momentum=0.9)
 
     print('Begin training loop')
 
     running_loss = 0
-    EPOCHS = 10
+    EPOCHS = 100
     batch_no = 0
     group_batch_loss = 0
     torch.autograd.set_detect_anomaly(True)

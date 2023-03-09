@@ -3,3 +3,5 @@ testing_img: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
 testing_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
 dim: 448
 classes: 1
+oneImage: False
+image: 'P1854-12'
