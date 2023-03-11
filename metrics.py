@@ -70,18 +70,10 @@ class AveragePrecision:
                 precisions.append(guessed/predicted)
                 idx += 1
 
-        self.average_precision = auc(np.asarray(recalls), np.asarray(precisions))
+        if len(precisions) == 0:
+            self.average_precision = 0
+        else:
+            self.average_precision = auc(np.asarray(recalls), np.asarray(precisions))
 
     def get_average_precision(self):
-        return self.average_precision
-
-
-
-
-
-
-
-
-
-
-
+        return float(self.average_precision)

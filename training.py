@@ -23,8 +23,8 @@ def loss_calc(outputs, truth):
         if torch.cuda.is_available():
             one_img_loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float32)
         # loss for bbox coords
-        for j in range(0, outputs.shape[1], 42):
-            for k in range(2):
+        for j in range(0, outputs.shape[1], 6):
+            for k in range(1):
                 if truth[i, j + (k*21)] == 1:
                     x_out = outputs[i, j + (k*21) + 1]
                     x_truth = truth[i, j + (k*21) + 1]
@@ -38,10 +38,10 @@ def loss_calc(outputs, truth):
                     h_out = outputs[i, j + (k * 21) + 4]
                     h_truth = truth[i, j + (k * 21) + 4]
 
-                    if not w_out >= 0:
-                        w_out = 0
-                    if not h_out >= 0:
-                        h_out = 0
+                    if not w_out > 0:
+                        w_out = torch.tensor(0.1)
+                    if not h_out > 0:
+                        h_out = torch.tensor(0.1)
 
                     one_img_loss += (x_out-x_truth)**2 + (y_out - y_truth)**2 + \
                                     (torch.sqrt(w_out) - torch.sqrt(w_truth))**2 + \
@@ -49,33 +49,42 @@ def loss_calc(outputs, truth):
 
         one_img_loss *= niu_coord
 
-        # loss if object is in cell
-        for j in range(0, outputs.shape[1], 42):
-            for k in range(2):
+        # iou loss if object is in cell
+        for j in range(0, outputs.shape[1], 6):
+            for k in range(1):
                 if truth[i, j + (k*21)] == 1:
                     bbox_out = (outputs[i, j+(k*21)+1], outputs[i, j+(k*21)+2], outputs[i, j+(k*21)+3], outputs[i, j+(k*21)+4])
                     bbox_truth = (truth[i, j+(k*21)+1], truth[i, j+(k*21)+2], truth[i, j+(k*21)+3], truth[i, j+(k*21)+4])
-                    c_truth = utils.get_iou_new(bbox_out, bbox_truth)
-                    c_out = outputs[i, j + (k * 21)]
-                    if c_truth < 0 or c_truth > 1:
+                    iou_pred_truth = utils.get_iou_new(bbox_out, bbox_truth)
+                    iou_desired = 1
+                    if iou_pred_truth < 0 or iou_pred_truth > 1:
                         one_img_loss += 0
                     else:
-                        one_img_loss += (c_out-c_truth)**2
+                        one_img_loss += (iou_desired-iou_pred_truth)**2
+
+        # loss for objectness
+        for j in range(0, outputs.shape[1], 6):
+            for k in range(1):
+                if truth[i, j + (k*21)] == 1:
+                    c_desired = 1
+                    c_out = outputs[i, j + (k * 21)]
+                    one_img_loss += (c_desired-c_out)**2
 
         # loss if no object is in the cell
-        for j in range(0, outputs.shape[1], 42):
-            for k in range(2):
+        noobj_loss = 0
+        for j in range(0, outputs.shape[1], 6):
+            for k in range(1):
                 if truth[i, j + (k*21)] == 0:
                     c_out = outputs[i, j + (k*21)]
                     c_truth = float(0)
-                    one_img_loss += (c_out-c_truth)**2
-        one_img_loss *= niu_noobj
+                    noobj_loss += (c_out-c_truth)**2
+        one_img_loss += niu_noobj*noobj_loss
 
         # loss for class probabilities
-        for j in range(0, outputs.shape[1], 42):
-            for k in range(2):
+        for j in range(0, outputs.shape[1], 6):
+            for k in range(1):
                 if truth[i, j + (k*21)] == 1:
-                    for p in range(16):
+                    for p in range(1):
                         p_out = outputs[i, j + (k*21) + 5 + p]
                         p_truth = truth[i, j + (k*21) + 5 + p]
                         one_img_loss += (p_out-p_truth)**2
@@ -86,18 +95,20 @@ def loss_calc(outputs, truth):
 
 def validation_loop(validation_loader, network):
     network.eval()
+    network.set_testing()
     with torch.no_grad():
         # running_vloss = 0
         c = '|'
         sys.stdout.write('Computing avarage precision for validation set...\n')
         for k, (img, annt) in enumerate(validation_loader):
             img = img.to(device)
-            annt = annt.reshape(-1, 49 * 6).to(device)
+            annt = annt.reshape(-1, 49 * 6)
 
             out = network(img)
-            _ = utils.FinalPredictions(out.to(torch.float32), annt.to(torch.float32))
+            for j in range(annt.shape[0]):
+                _ = utils.FinalPredictions(out[j].to(torch.float32).cpu(), annt[j].to(torch.float32))
             sys.stdout.write(c)
-            c += c
+            c += '|'
             sys.stdout.flush()
 
         #    val_loss = loss_calc(out, annt)
@@ -106,8 +117,12 @@ def validation_loop(validation_loader, network):
         # print(f'Validation loss: {running_vloss/k}')
         ap = AveragePrecision(utils.all_detections, utils.positives)
         print(f'Validation avarage precision: {ap.get_average_precision()}')
+        utils.positives = 0
+        utils.all_detections = []
+        network.set_training()
         print('Exit or will continue in 10s...')
         time.sleep(10)
+        return ap.get_average_precision()
 
 
 if __name__ == "__main__":
@@ -120,7 +135,8 @@ if __name__ == "__main__":
     validation_img = dataset_paths['validation_images_path']
     dim = dataset_paths['img_dim']
     classes = dataset_paths['no_of_classes']
-    state_file = dataset_paths['state_file']
+    last_state_file = dataset_paths['last_state_file']
+    best_state_file = dataset_paths['best_state_file']
     checkpoint = dataset_paths['checkpoint']
 
     print('Loading the training dataset...')
@@ -146,7 +162,7 @@ if __name__ == "__main__":
 
     if checkpoint:
         print('Reload from checkpoint')
-        network.load_state_dict(torch.load(state_file))
+        network.load_state_dict(torch.load(last_state_file))
 
     # for param in network.parameters():
     #     if len(param.data.shape) == 4:
@@ -170,6 +186,7 @@ if __name__ == "__main__":
     avg_time_plot = utils.DynamicUpdate('Average processing time')
     epoch_loss_plot = utils.DynamicUpdate('Loss per epoch', max_x=EPOCHS)
     loop_begin = 0
+    max_ap = 0.265
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
         for i, (image, annotations) in enumerate(train_loader):
@@ -180,7 +197,7 @@ if __name__ == "__main__":
 
             outputs = network(image)
             assert annotations.shape == outputs.shape
-            loss = loss_calc(outputs, annotations)
+            loss = loss_calc(outputs.to(torch.float32), annotations.to(torch.float32))
             loss.backward()
 
             optimizer.step()
@@ -205,8 +222,14 @@ if __name__ == "__main__":
         epoch_loss = running_loss/batch_no
         print(f'Epoch {epoch+1} loss: {epoch_loss}')
         #utils.plot_dynamic_graph(epoch_loss_plot, epoch_loss, epoch)
-        validation_loop(validation_loader, network)
-        torch.save(network.state_dict(), state_file)
+        ap = validation_loop(validation_loader, network)
+        if ap > max_ap:
+            print(f'Saving best version of weights, average precision = {ap}')
+            max_ap = ap
+            torch.save(network.state_dict(), best_state_file)
+
+        print('Saving last version of weights...')
+        torch.save(network.state_dict(), last_state_file)
         network.train()
         running_loss = 0
         batch_no = 0

@@ -186,16 +186,26 @@ def get_iou_new(bbox1, bbox2):
 
     # Calculate the area of intersection rectangle
     interArea = max(torch.tensor(0), xB - xA + 1) * max(torch.tensor(0), yB - yA + 1)
-   # interArea = interArea.to(torch.float32)
+    interArea = interArea.to(torch.float32)
 
     # Calculate the area of the two bounding boxes
     boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
     boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-  #  boxAArea = boxAArea.to(torch.float32)
-   # boxBArea = boxBArea.to(torch.float32)
+    boxAArea = boxAArea.to(torch.float32)
+    boxBArea = boxBArea.to(torch.float32)
 
     # Calculate the IOU
     iou = interArea / (boxAArea + boxBArea - interArea)
+
+    # enclosed_x1 = min(boxA[0], boxA[0])
+    # enclosed_y1 = min(boxA[1], boxA[1])
+    # enclosed_x2 = max(boxA[2], boxA[2])
+    # enclosed_y2 = max(boxA[3], boxA[3])
+    # enclosed_area = (enclosed_x2 - enclosed_x1) * (enclosed_y2 - enclosed_y1)
+    # enclosed_area = enclosed_area.to(torch.float32)
+    #
+    # # Compute GIoU
+    # giou = iou - ((enclosed_area - (boxAArea + boxBArea)) / enclosed_area)
 
     # Return the IOU
     return iou

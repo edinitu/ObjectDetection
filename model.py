@@ -121,8 +121,8 @@ class NetworkModel(torch.nn.Module):
         if not self.testing:
             x = nn.functional.dropout(x, p=0.5)
         x = nn.functional.relu(self.fc2(x))
-        if torch.max(x) > 1.5:
-            print(f'Max value: {torch.max(x)}')
+       # if torch.max(x) > 1.5:
+        #    print(f'Max value: {torch.max(x)}')
             # raise RuntimeError("Network activations out of range after linear layers")
         # print('Final shape of tensor:', str(x.shape))
         return x

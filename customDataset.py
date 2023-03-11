@@ -74,7 +74,7 @@ class AerialImagesDataset(Dataset):
             grids_annotations = self.transform(grids_annotations)
 
         image = image.to(torch.float16)
-        return image, grids_annotations, self.images[idx]
+        return image, grids_annotations
 
     def build_grids_annotations(self, annotations):
         # grid cell dimension, currently just for 7x7 grid

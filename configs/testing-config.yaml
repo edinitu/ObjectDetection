@@ -1,7 +1,7 @@
-weights: 'C:\Users\edini\Desktop\planes2.pt'
-testing_img: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
-testing_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
+weights: '/home/campus/Desktop/data/planes3_best.pt'
+testing_img: '/home/campus/Desktop/data/planes_validation/img'
+testing_csv: '/home/campus/Desktop/data/planes_validation/csv'
 dim: 448
 classes: 1
-oneImage: False
-image: 'P1854-12'
+oneImage: True
+image: 'ptest'

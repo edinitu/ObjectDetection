@@ -28,9 +28,10 @@ if __name__ == "__main__":
     classes = testing_configs['classes']
 
     if testing_configs['oneImage']:
-        annotations = pd.read_csv(os.path.join(csv_test_path, testing_configs['image'] + '.csv'), header=None)
-        annotations = np.array(annotations)
-        image = plt.imread(os.path.join(img_test_path, testing_configs['image'] + '.png'))
+       # annotations = pd.read_csv(os.path.join(csv_test_path, testing_configs['image'] + '.csv'), header=None)
+        #annotations = np.array(annotations)
+        annotations = np.zeros((1, 6))
+        image = plt.imread(os.path.join(img_test_path, testing_configs['image'] + '.jpg'))
         image = image.astype(np.float16)
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
@@ -59,7 +60,7 @@ if __name__ == "__main__":
 
         final_pred = utils.FinalPredictions(outputs.cpu(), annotations)
         annt_test = utils.FinalPredictions(annotations, annotations)
-        image = plt.imread(os.path.join(img_test_path, testing_configs['image'] + '.png'))
+        image = plt.imread(os.path.join(img_test_path, testing_configs['image'] + '.jpg'))
         final_pred.draw_boxes()
         annt_test.draw_boxes(other_color=True)
         plt.imshow(image)
