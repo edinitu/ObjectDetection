@@ -6,4 +6,4 @@ last_state_file: '/home/campus/Desktop/data/planes4.pt'
 best_state_file: '/home/campus/Desktop/data/planes4_best.pt'
 checkpoint: False
 img_dim: 448
-no_of_classes: 1
+no_of_classes: 4

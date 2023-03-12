@@ -23,7 +23,7 @@ def loss_calc(outputs, truth):
         if torch.cuda.is_available():
             one_img_loss = torch.tensor(0, device=torch.device('cuda'), dtype=torch.float32)
         # loss for bbox coords
-        for j in range(0, outputs.shape[1], 6):
+        for j in range(0, outputs.shape[1], 9):
             for k in range(1):
                 if truth[i, j + (k*21)] == 1:
                     x_out = outputs[i, j + (k*21) + 1]
@@ -50,7 +50,7 @@ def loss_calc(outputs, truth):
         one_img_loss *= niu_coord
 
         # iou loss if object is in cell
-        for j in range(0, outputs.shape[1], 6):
+        for j in range(0, outputs.shape[1], 9):
             for k in range(1):
                 if truth[i, j + (k*21)] == 1:
                     bbox_out = (outputs[i, j+(k*21)+1], outputs[i, j+(k*21)+2], outputs[i, j+(k*21)+3], outputs[i, j+(k*21)+4])
@@ -63,7 +63,7 @@ def loss_calc(outputs, truth):
                         one_img_loss += (iou_desired-iou_pred_truth)**2
 
         # loss for objectness
-        for j in range(0, outputs.shape[1], 6):
+        for j in range(0, outputs.shape[1], 9):
             for k in range(1):
                 if truth[i, j + (k*21)] == 1:
                     c_desired = 1
@@ -72,7 +72,7 @@ def loss_calc(outputs, truth):
 
         # loss if no object is in the cell
         noobj_loss = 0
-        for j in range(0, outputs.shape[1], 6):
+        for j in range(0, outputs.shape[1], 9):
             for k in range(1):
                 if truth[i, j + (k*21)] == 0:
                     c_out = outputs[i, j + (k*21)]
@@ -81,10 +81,10 @@ def loss_calc(outputs, truth):
         one_img_loss += niu_noobj*noobj_loss
 
         # loss for class probabilities
-        for j in range(0, outputs.shape[1], 6):
+        for j in range(0, outputs.shape[1], 9):
             for k in range(1):
                 if truth[i, j + (k*21)] == 1:
-                    for p in range(1):
+                    for p in range(4):
                         p_out = outputs[i, j + (k*21) + 5 + p]
                         p_truth = truth[i, j + (k*21) + 5 + p]
                         one_img_loss += (p_out-p_truth)**2
@@ -115,14 +115,18 @@ def validation_loop(validation_loader, network):
         #     print(f'Validation {k} loss: {val_loss}')
         #     running_vloss += val_loss.item()
         # print(f'Validation loss: {running_vloss/k}')
-        ap = AveragePrecision(utils.all_detections, utils.positives)
-        print(f'Validation avarage precision: {ap.get_average_precision()}')
+        ap_planes = AveragePrecision(utils.all_detections['plane'], utils.positives['plane'])
+        ap_ship = AveragePrecision(utils.all_detections['ship'], utils.positives['ship'])
+        ap_tennis = AveragePrecision(utils.all_detections['tennis-court'], utils.positives['tennis-court'])
+        ap_swimming = AveragePrecision(utils.all_detections['swimming-pool'], utils.positives['swimming-pool'])
+        mAP = (ap_planes.get_average_precision() + ap_ship.get_average_precision() + ap_tennis.get_average_precision() + ap_swimming.get_average_precision()) / 4
+        print(f'Validation mAP: {mAP}')
         utils.positives = 0
         utils.all_detections = []
         network.set_training()
         print('Exit or will continue in 10s...')
         time.sleep(10)
-        return ap.get_average_precision()
+        return mAP
 
 
 if __name__ == "__main__":
@@ -186,7 +190,7 @@ if __name__ == "__main__":
     avg_time_plot = utils.DynamicUpdate('Average processing time')
     epoch_loss_plot = utils.DynamicUpdate('Loss per epoch', max_x=EPOCHS)
     loop_begin = 0
-    max_ap = 0.265
+    max_ap = 0
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
         for i, (image, annotations) in enumerate(train_loader):

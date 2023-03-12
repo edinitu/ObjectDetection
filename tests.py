@@ -74,51 +74,68 @@ class TestMethods(unittest.TestCase):
         self.assertEqual(0.123, round(avg.get_average_precision(), 3))
 
     def test_detection_list(self):
-        outputs = torch.zeros((49*6), dtype=torch.float16)
+        outputs = torch.zeros((49*9), dtype=torch.float16)
         outputs[0] = 0.78
         outputs[1] = 0.7
         outputs[2] = 0.5
         outputs[3] = 0.5
         outputs[4] = 0.6
+        outputs[5] = 0.1
+        outputs[6] = 0.6
+        outputs[7] = 0.2
+        outputs[8] = 0.1
 
-        truth = torch.zeros((49 * 6), dtype=torch.float16)
+        truth = torch.zeros((49 * 9), dtype=torch.float16)
         truth[0] = 1
         truth[1] = 0.7
         truth[2] = 0.5
         truth[3] = 0.6
         truth[4] = 0.5
+        truth[5] = 0
+        truth[6] = 1
+        truth[7] = 0
+        truth[8] = 0
 
-        iou = utils.get_iou([0.7, 0.5, 0.5, 0.6], [0.7, 0.5, 0.6, 0.5])
+        iou = utils.get_iou_new(utils.convert_to_yolo_full_scale(torch.tensor([0.7, 0.5, 0.5, 0.6]), 0),
+                                utils.convert_to_yolo_full_scale(torch.tensor([0.7, 0.5, 0.6, 0.5]), 0))
         self.assertTrue(iou > 0.5)
 
         utils.FinalPredictions(outputs, truth)
 
-        outputs = torch.zeros((49*6), dtype=torch.float16)
+        outputs = torch.zeros((49*9), dtype=torch.float16)
         outputs[0] = 0.67
-        outputs[1] = 0.3
+        outputs[1] = 0.1
         outputs[2] = 0.5
-        outputs[3] = 0.5
-        outputs[4] = 0.6
+        outputs[3] = 0.05
+        outputs[4] = 0.06
+        outputs[5] = 0.1
+        outputs[6] = 0.6
+        outputs[7] = 0.2
+        outputs[8] = 0.1
 
-        truth = torch.zeros((49 * 6), dtype=torch.float16)
+        truth = torch.zeros((49 * 9), dtype=torch.float16)
         truth[0] = 1
-        truth[1] = 0.7
+        truth[1] = 0.9
         truth[2] = 0.5
-        truth[3] = 0.6
-        truth[4] = 0.5
+        truth[3] = 0.06
+        truth[4] = 0.05
+        truth[5] = 0
+        truth[6] = 1
+        truth[7] = 0
+        truth[8] = 0
 
-        iou = utils.get_iou([0.3, 0.5, 0.5, 0.6], [0.7, 0.5, 0.6, 0.5])
+        iou = utils.get_iou_new(utils.convert_to_yolo_full_scale(torch.tensor([0.1, 0.5, 0.05, 0.06]), 0),
+                                utils.convert_to_yolo_full_scale(torch.tensor([0.9, 0.5, 0.06, 0.05]), 0))
         self.assertTrue(iou < 0.5)
 
         utils.FinalPredictions(outputs, truth)
 
         self.assertTrue(
-            utils.all_detections[0].get_confusion() == utils.TRUE_POSITIVE and
-            utils.all_detections[1].get_confusion() == utils.FALSE_POSITIVE and
-            utils.positives == 2
+            utils.all_detections['ship'][0].get_confusion() == utils.TRUE_POSITIVE and
+            utils.all_detections['ship'][1].get_confusion() == utils.FALSE_POSITIVE and
+            utils.positives['ship'] == 2
         )
 
-        ap = AveragePrecision(utils.all_detections, utils.positives)
+        ap = AveragePrecision(utils.all_detections['ship'], utils.positives['ship'])
         self.assertTrue(ap.get_average_precision() == 0.5)
-
 

@@ -56,10 +56,10 @@ class DynamicUpdate(Thread):
 
         return self.xdata, self.ydata
 
-
+classes_dict = {0:'plane', 1:'ship', 2:'tennis-court', 3:'swimming-pool'}
 # TODO Define list of PredictionStats objects and pass it to AveragePrecision to compute it
-all_detections = []
-positives = 0
+all_detections = {'plane': [], 'ship': [], 'tennis-court': [], 'swimming-pool': []}
+positives = {'plane': 0, 'ship': 0, 'tennis-court': 0, 'swimming-pool': 0}
 
 
 class FinalPredictions:
@@ -67,30 +67,29 @@ class FinalPredictions:
     no_of_grids = 49
 
     def __init__(self, outputs, truths):
-        self.grids = {}
-        self.truths = {}
+        self.grids = {'plane': {}, 'ship': {}, 'tennis-court': {}, 'swimming-pool': {}}
+        self.truths = {'plane': {}, 'ship': {}, 'tennis-court': {}, 'swimming-pool': {}}
         grid_id = 0
-        outputs = torch.reshape(outputs, (49, 6))
-        truths = torch.reshape(truths, (49, 6))
+        outputs = torch.reshape(outputs, (49, 9))
+        truths = torch.reshape(truths, (49, 9))
         count = 0
         for elem in truths:
             if elem[0] == 1:
                 img_elem = ImageElement()
                 img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
-                img_elem.set_label('plane')
-                self.truths[count] = img_elem
+                img_elem.set_label(self.get_label([elem[5], elem[6], elem[7], elem[8]]))
+                self.truths[img_elem.get_label()][count] = img_elem
             count += 1
 
         for elem in outputs:
-            if elem[0] < 0.3:
+            if elem[0] < 0.4:
                 grid_id += 1
                 continue
             img_elem = ImageElement()
             img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
             img_elem.set_confidence(elem[0])
-            if elem[5] > 0.5:
-                img_elem.set_label('plane')
-            self.grids[grid_id] = img_elem
+            img_elem.set_label(self.get_label([elem[5], elem[6], elem[7], elem[8]]))
+            self.grids[img_elem.get_label()][grid_id] = img_elem
             grid_id += 1
 
         self.non_max_suppression()
@@ -99,71 +98,84 @@ class FinalPredictions:
 
     # TODO Define unit test for this
     def non_max_suppression(self):
-        conf_id_map = {}
-        for key in self.grids.keys():
-            conf_id_map[self.grids[key].get_confidence()] = key
+        for class_key in self.grids.keys():
+            conf_id_map = {}
+            for secondary_key in self.grids[class_key].keys():
+                conf_id_map[self.grids[class_key][secondary_key].get_confidence()] = secondary_key
 
-        sorted_conf = []
-        for key in conf_id_map.keys():
-            sorted_conf.append(key)
-        sorted_conf.sort(reverse=True)
+            sorted_conf = []
+            for key in conf_id_map.keys():
+                sorted_conf.append(key)
+            sorted_conf.sort(reverse=True)
 
-        for conf in sorted_conf:
-            if conf_id_map[conf] not in self.grids:
-                continue
-            self.remove_overlapped_boxes(conf_id_map[conf])
+            for conf in sorted_conf:
+                if conf_id_map[conf] not in self.grids[class_key]:
+                    continue
+                self.remove_overlapped_boxes(conf_id_map[conf], class_key)
 
-    def remove_overlapped_boxes(self, reference_key):
+    def remove_overlapped_boxes(self, reference_key, class_key):
         for key in range(self.no_of_grids):
-            if key != reference_key and key in self.grids:
+            if key != reference_key and key in self.grids[class_key]:
                 iou = get_iou_new(
-                    convert_to_yolo_full_scale(self.grids[reference_key].get_yolo_bbox(), reference_key),
-                    convert_to_yolo_full_scale(self.grids[key].get_yolo_bbox(), key)
+                    convert_to_yolo_full_scale(self.grids[class_key][reference_key].get_yolo_bbox(), reference_key),
+                    convert_to_yolo_full_scale(self.grids[class_key][key].get_yolo_bbox(), key)
                 )
                 if iou > 0.4:
-                    del self.grids[key]
+                    del self.grids[class_key][key]
 
     def add_to_stats_list(self):
         """
         Here we populate the list with all detections in the testing set. They can either be
         true positives or false positives. Also increment the number of ground truths positives.
         """
-        for pred_key in self.grids.keys():
-            count = 0
-            for truth_key in self.truths.keys():
-                iou = get_iou_new(
-                    convert_to_yolo_full_scale(self.grids[pred_key].get_yolo_bbox(), pred_key),
-                    convert_to_yolo_full_scale(self.truths[truth_key].get_yolo_bbox(), truth_key)
-                )
-            #    print(iou)
-                if iou > 0.3:
-                    all_detections.append(
-                        PredictionStats(self.grids[pred_key].get_confidence(), TRUE_POSITIVE)
+        for class_key in self.grids.keys():
+            for pred_key in self.grids[class_key].keys():
+                count = 0
+                for truth_key in self.truths[class_key].keys():
+                    iou = get_iou_new(
+                        convert_to_yolo_full_scale(self.grids[class_key][pred_key].get_yolo_bbox(), pred_key),
+                        convert_to_yolo_full_scale(self.truths[class_key][truth_key].get_yolo_bbox(), truth_key)
                     )
-                    count += 1
-                    break
-            if count == 0:
-                all_detections.append(
-                    PredictionStats(self.grids[pred_key].get_confidence(), FALSE_POSITIVE)
-                )
+                    #    print(iou)
+                    if iou > 0.5:
+                        all_detections[class_key].append(
+                            PredictionStats(self.grids[class_key][pred_key].get_confidence(), TRUE_POSITIVE)
+                        )
+                        count += 1
+                        break
+                if count == 0:
+                    all_detections[class_key].append(
+                        PredictionStats(self.grids[class_key][pred_key].get_confidence(), FALSE_POSITIVE)
+                    )
 
-        global positives
-        positives += len(self.truths.keys())
+            global positives
+            positives[class_key] += len(self.truths[class_key].keys())
 
     def convert_to_dota(self):
-        for key in self.grids.keys():
-            self.grids[key].convert_yolo_to_dota(key)
+        for class_key in self.grids.keys():
+            for key in self.grids[class_key].keys():
+                self.grids[class_key][key].convert_yolo_to_dota(key)
 
-    def draw_boxes(self, other_color=False):
-        if other_color:
-            for elem in self.grids.values():
-                elem.draw_box(color='red')
+    def draw_boxes(self, truths=False):
+        if truths:
+            for class_key in self.grids.keys():
+                for elem in self.grids[class_key].values():
+                    elem.draw_box(color='red')
         else:
-            for elem in self.grids.values():
-                elem.draw_box()
+            for class_key in self.grids.keys():
+                for elem in self.grids[class_key].values():
+                    elem.draw_box()
 
     def get_grids(self):
         return self.grids
+
+    def get_label(self, classes_list):
+        max_idx = 0
+        for i in range(1, len(classes_list), 1):
+            if classes_list[i] > classes_list[max_idx]:
+                max_idx = i
+
+        return classes_dict[max_idx]
 
 
 def grey2rgb(img):

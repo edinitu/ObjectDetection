@@ -127,9 +127,13 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
     for i in range(0, imgheight, height):
         for j in range(0, imgwidth, width):
             box = (j, i, j+width, i+height)
+            objects_in_one_piece = 0
             for part in image_parts:
-                if part.get_label() != 'plane':
+                if part.get_label() != 'plane' and part.get_label() != 'tennis-court' and \
+                        part.get_label() != 'swimming-pool' and part.get_label() != 'ship':
                     continue
+                if objects_in_one_piece > 15:
+                    break
                 if part.get_bounding_box()[0] >= j and part.get_bounding_box()[1] >= i\
                         and part.get_bounding_box()[4] <= j+width and part.get_bounding_box()[5] <= i+height:
 
@@ -137,6 +141,7 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
                     bbox_to_write = convert_bbox_to_smaller_image(part.get_bounding_box(), j, i)
                     path = os.path.join(txt_path, input[len(input)-9:len(input)-4] + "-" + str(k) + ".txt")
                     write_to_txt(path, part, bbox_to_write)
+                    objects_in_one_piece += 1
                     bbox_in_imgbox = True
 
             # save only images that contain minimum 1 bounding box for training
@@ -165,7 +170,10 @@ def read_one_image_labels(img_label, dict):
                 break
             img_element.set_bounding_box(line[0:8])
             img_element.set_label(line[8])
-            if img_element.get_label() != 'plane':
+            if img_element.get_label() != 'plane' and \
+                img_element.get_label() != 'tennis-court' and \
+                    img_element.get_label() != 'ship' and \
+                    img_element.get_label() != 'swimming-pool':
                 continue
             if line[8] in dict:
                 img_element.set_number_label(str(dict[line[8]]))

@@ -62,7 +62,7 @@ if __name__ == "__main__":
         annt_test = utils.FinalPredictions(annotations, annotations)
         image = plt.imread(os.path.join(img_test_path, testing_configs['image'] + '.jpg'))
         final_pred.draw_boxes()
-        annt_test.draw_boxes(other_color=True)
+        annt_test.draw_boxes(truths=True)
         plt.imshow(image)
         plt.show(block=True)
 

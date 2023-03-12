@@ -80,7 +80,7 @@ class NetworkModel(torch.nn.Module):
         # define linear layers
         self.fc1 = nn.Linear(7 * 7 * 1024, 4096, dtype=torch.float16)
         # TODO make this layer configurable based on the number of classes we want to detect
-        self.fc2 = nn.Linear(4096, 7 * 7 * 6, dtype=torch.float16)
+        self.fc2 = nn.Linear(4096, 7 * 7 * 9, dtype=torch.float16)
 
     def forward(self, x):
         # print('Initial image shape: ', str(x.shape))
