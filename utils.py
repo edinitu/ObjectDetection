@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
@@ -56,10 +58,20 @@ class DynamicUpdate(Thread):
 
         return self.xdata, self.ydata
 
+
 classes_dict = {0:'plane', 1:'ship', 2:'tennis-court', 3:'swimming-pool'}
 # TODO Define list of PredictionStats objects and pass it to AveragePrecision to compute it
 all_detections = {'plane': [], 'ship': [], 'tennis-court': [], 'swimming-pool': []}
 positives = {'plane': 0, 'ship': 0, 'tennis-court': 0, 'swimming-pool': 0}
+
+
+def get_label(classes_list):
+    max_idx = 0
+    for i in range(1, len(classes_list), 1):
+        if classes_list[i] > classes_list[max_idx]:
+            max_idx = i
+
+    return classes_dict[max_idx]
 
 
 class FinalPredictions:
@@ -77,7 +89,7 @@ class FinalPredictions:
             if elem[0] == 1:
                 img_elem = ImageElement()
                 img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
-                img_elem.set_label(self.get_label([elem[5], elem[6], elem[7], elem[8]]))
+                img_elem.set_label(get_label([elem[5], elem[6], elem[7], elem[8]]))
                 self.truths[img_elem.get_label()][count] = img_elem
             count += 1
 
@@ -88,7 +100,7 @@ class FinalPredictions:
             img_elem = ImageElement()
             img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
             img_elem.set_confidence(elem[0])
-            img_elem.set_label(self.get_label([elem[5], elem[6], elem[7], elem[8]]))
+            img_elem.set_label(get_label([elem[5], elem[6], elem[7], elem[8]]))
             self.grids[img_elem.get_label()][grid_id] = img_elem
             grid_id += 1
 
@@ -137,7 +149,7 @@ class FinalPredictions:
                         convert_to_yolo_full_scale(self.truths[class_key][truth_key].get_yolo_bbox(), truth_key)
                     )
                     #    print(iou)
-                    if iou > 0.5:
+                    if iou > 0.3:
                         all_detections[class_key].append(
                             PredictionStats(self.grids[class_key][pred_key].get_confidence(), TRUE_POSITIVE)
                         )
@@ -149,7 +161,7 @@ class FinalPredictions:
                     )
 
             global positives
-            positives[class_key] += len(self.truths[class_key].keys())
+            positives[class_key] += len(list(self.truths[class_key].keys()))
 
     def convert_to_dota(self):
         for class_key in self.grids.keys():
@@ -165,17 +177,10 @@ class FinalPredictions:
             for class_key in self.grids.keys():
                 for elem in self.grids[class_key].values():
                     elem.draw_box()
+                    print(elem.get_label())
 
     def get_grids(self):
         return self.grids
-
-    def get_label(self, classes_list):
-        max_idx = 0
-        for i in range(1, len(classes_list), 1):
-            if classes_list[i] > classes_list[max_idx]:
-                max_idx = i
-
-        return classes_dict[max_idx]
 
 
 def grey2rgb(img):

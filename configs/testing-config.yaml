@@ -1,7 +1,7 @@
-weights: '/home/campus/Desktop/data/planes3_best.pt'
-testing_img: '/home/campus/Desktop/data/planes_validation/img'
-testing_csv: '/home/campus/Desktop/data/planes_validation/csv'
+weights: '/home/campus/Desktop/data/model_4_classes_best.pt'
+testing_img: '/home/campus/Desktop/data/multi_class_validation/img'
+testing_csv: '/home/campus/Desktop/data/multi_class_validation/csv'
 dim: 448
-classes: 1
+classes: 4
 oneImage: True
-image: 'ptest'
+image: 'P0179-17'

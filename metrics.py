@@ -11,6 +11,12 @@ class PredictionStats:
         self.confidence = confidence
         self.confusion = confusion
 
+    def __str__(self):
+        return str(f'Confidence: {self.confidence} - {self.confusion}')
+
+    def __repr__(self):
+        return str(f'Confidence: {self.confidence} - {self.confusion}')
+
     @classmethod
     def no_args_construct(cls):
         return cls(0, '')

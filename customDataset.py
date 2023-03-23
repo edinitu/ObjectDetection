@@ -31,7 +31,7 @@ class AerialImagesDataset(Dataset):
 
     @classmethod
     def no_args_construct(cls):
-        return cls(None, None, 448, 1)
+        return cls(None, None, 448, 4)
 
     def __len__(self):
         return len(self.images)

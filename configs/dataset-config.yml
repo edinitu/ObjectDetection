@@ -1,9 +1,9 @@
-train_images_path: '/home/campus/Desktop/data/planes_training/img'
-train_labels_csv: '/home/campus/Desktop/data/planes_training/csv'
-validation_images_path: '/home/campus/Desktop/data/planes_validation/img'
-validation_csv_path: '/home/campus/Desktop/data/planes_validation/csv'
-last_state_file: '/home/campus/Desktop/data/planes4.pt'
-best_state_file: '/home/campus/Desktop/data/planes4_best.pt'
-checkpoint: False
+train_images_path: '/home/campus/Desktop/data/multi_class_training/img'
+train_labels_csv: '/home/campus/Desktop/data/multi_class_training/csv'
+validation_images_path: '/home/campus/Desktop/data/multi_class_validation/img'
+validation_csv_path: '/home/campus/Desktop/data/multi_class_validation/csv'
+last_state_file: '/home/campus/Desktop/data/model_4_classes.pt'
+best_state_file: '/home/campus/Desktop/data/model_4_classes_best.pt'
+checkpoint: True
 img_dim: 448
 no_of_classes: 4

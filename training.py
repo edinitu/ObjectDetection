@@ -102,14 +102,14 @@ def validation_loop(validation_loader, network):
         sys.stdout.write('Computing avarage precision for validation set...\n')
         for k, (img, annt) in enumerate(validation_loader):
             img = img.to(device)
-            annt = annt.reshape(-1, 49 * 6)
+            annt = annt.reshape(-1, 49 * 9)
 
             out = network(img)
             for j in range(annt.shape[0]):
                 _ = utils.FinalPredictions(out[j].to(torch.float32).cpu(), annt[j].to(torch.float32))
-            sys.stdout.write(c)
-            c += '|'
-            sys.stdout.flush()
+            # sys.stdout.write(c)
+            # c += '|'
+            # sys.stdout.flush()
 
         #    val_loss = loss_calc(out, annt)
         #     print(f'Validation {k} loss: {val_loss}')
@@ -121,8 +121,10 @@ def validation_loop(validation_loader, network):
         ap_swimming = AveragePrecision(utils.all_detections['swimming-pool'], utils.positives['swimming-pool'])
         mAP = (ap_planes.get_average_precision() + ap_ship.get_average_precision() + ap_tennis.get_average_precision() + ap_swimming.get_average_precision()) / 4
         print(f'Validation mAP: {mAP}')
-        utils.positives = 0
-        utils.all_detections = []
+        for key in utils.positives.keys():
+            utils.positives[key] = 0
+        for key in utils.all_detections.keys():
+            utils.all_detections[key] = []
         network.set_training()
         print('Exit or will continue in 10s...')
         time.sleep(10)
@@ -166,20 +168,20 @@ if __name__ == "__main__":
 
     if checkpoint:
         print('Reload from checkpoint')
-        network.load_state_dict(torch.load(last_state_file))
+        network.load_state_dict(torch.load(best_state_file))
 
     # for param in network.parameters():
     #     if len(param.data.shape) == 4:
     #         param.requires_grad = False
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    learning_rate = 0.0001
+    learning_rate = 0.00001
     optimizer = torch.optim.SGD(network.parameters(), lr=learning_rate, weight_decay=0.0005, momentum=0.9)
 
     print('Begin training loop')
 
     running_loss = 0
-    EPOCHS = 100
+    EPOCHS = 30
     batch_no = 0
     group_batch_loss = 0
     torch.autograd.set_detect_anomaly(True)
@@ -190,14 +192,14 @@ if __name__ == "__main__":
     avg_time_plot = utils.DynamicUpdate('Average processing time')
     epoch_loss_plot = utils.DynamicUpdate('Loss per epoch', max_x=EPOCHS)
     loop_begin = 0
-    max_ap = 0
+    max_ap = 0.07
     for epoch in range(EPOCHS):
         print(f'Epoch {epoch+1}')
         for i, (image, annotations) in enumerate(train_loader):
             if i == 0:
                 loop_begin = time.time_ns()
             image = image.to(device)
-            annotations = annotations.reshape(-1, 49*6).to(device)
+            annotations = annotations.reshape(-1, 49*9).to(device)
 
             outputs = network(image)
             assert annotations.shape == outputs.shape
