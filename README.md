@@ -14,6 +14,10 @@ This project contains:
   
   - <b>training</b>: script for training the model
   
+  - <b>testing</b>: script for testing the model on 1 image, or on the whole testing set
+  
+  - <b>metrics</b> utility classes used for computing relevant metrics such as recall or average precision
+  
   - <b>utils</b>: useful functions to help in other scripts
   
   - <b>tests</b>: unit tests
