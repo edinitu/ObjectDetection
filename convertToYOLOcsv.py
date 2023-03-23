@@ -43,7 +43,7 @@ annotations_list = []
 
 def convertToYOLO(bbox):
     yolo_labels = []
-    x_midpoint = (float(bbox[0])+float(bbox[6]))/2
+    x_midpoint = (float(bbox[0])+float(bbox[4]))/2
     y_midpoint = (float(bbox[1])+float(bbox[7]))/2
 
     height = abs(float(bbox[1])-float(bbox[7]))

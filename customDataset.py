@@ -1,6 +1,4 @@
 import os
-import sys
-
 import torch.utils.data
 import yaml
 from torch.utils.data import Dataset
@@ -10,11 +8,16 @@ import matplotlib.pyplot as plt
 import utils
 from pandas.errors import EmptyDataError
 
+# TODO Refactor config files in 2 general files: pre-process-config and model-config
+
 
 class AerialImagesDataset(Dataset):
+
     def __init__(self, root_csv_files, root_img_files, img_dim, no_of_classes, transform=None):
         self.img_dim = img_dim
         self.no_of_classes = no_of_classes
+        if not root_csv_files:
+            return
         self.annotations = []
         self.images = []
         for csv_file in sorted(os.listdir(root_csv_files)):
@@ -26,6 +29,10 @@ class AerialImagesDataset(Dataset):
             self.images.append(os.path.join(root_img_files, image))
         self.transform = transform
 
+    @classmethod
+    def no_args_construct(cls):
+        return cls(None, None, 448, 4)
+
     def __len__(self):
         return len(self.images)
 
@@ -34,7 +41,7 @@ class AerialImagesDataset(Dataset):
             idx = idx.tolist()
 
         image = plt.imread(self.images[idx])
-        image = image.astype(np.float32)
+        image = image.astype(np.float16)
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
         if image.shape == (448, 448):
@@ -58,7 +65,7 @@ class AerialImagesDataset(Dataset):
         annotations = np.array(self.annotations[idx])
         # get the vectors for every grid cell in the image
         grids_annotations = self.build_grids_annotations(annotations)
-        grids_annotations = grids_annotations.astype(np.float32)
+        grids_annotations = grids_annotations.astype(np.float16)
         #sample = {'image': image, 'annotations': grids_annotations}
 
         if self.transform:
@@ -66,11 +73,13 @@ class AerialImagesDataset(Dataset):
             image = self.transform(image)
             grids_annotations = self.transform(grids_annotations)
 
+        image = image.to(torch.float16)
         return image, grids_annotations
 
     def build_grids_annotations(self, annotations):
         # grid cell dimension, currently just for 7x7 grid
         # TODO add grid dimensions to dataset-config and make it class field.
+        # TODO add number of detection per grid to dataset-config
         grid_dim = int(self.img_dim/7)
         img_ground_truth = []
         # Loop through grid cells
@@ -79,10 +88,10 @@ class AerialImagesDataset(Dataset):
                 # Ground truth for a grid cell is one bounding box (IOU, x, y, w, h) with its class
                 # probabilities for TWO objects. Initialize it with confidence 0 for both objects and
                 # random coordinates and set it accordingly if a grid cell contains one or two objects.
-                grid_vector = np.random.rand((5 + self.no_of_classes)*2, 1)
+                grid_vector = np.random.rand(5 + self.no_of_classes, 1)
                 # before checking, assume no object is in the cell
                 grid_vector[0] = 0
-                grid_vector[21] = 0
+              #  grid_vector[21] = 0
                 objects_in_cell = 0
                 # if a bbox center is in the grid cell => grid cell responsible for predicting that
                 # object
@@ -90,7 +99,7 @@ class AerialImagesDataset(Dataset):
                     bbox = annt[1:]
                     if i * grid_dim <= bbox[0] <= (i + 1) * grid_dim and \
                             j * grid_dim <= bbox[1] <= (j + 1) * grid_dim and \
-                            objects_in_cell < 2:
+                            objects_in_cell < 1:
                         self.build_grid_vector(grid_vector, bbox, grid_dim, annt[0], objects_in_cell, i, j)
                         objects_in_cell += 1
 
