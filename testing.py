@@ -14,7 +14,8 @@ import matplotlib.pyplot as plt
 from model import NetworkModel
 
 if __name__ == "__main__":
-    with open('configs/testing-config.yaml') as f:
+    # TODO Refactor the initialization here
+    with open('configs/model-config.yaml') as f:
         testing_configs = yaml.safe_load(f)
 
     # Loading saved model

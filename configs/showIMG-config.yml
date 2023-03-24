@@ -1,3 +1,4 @@
+# TODO Merge this config with convertYOLO config
 Paths:
   train_data_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\images'
   train_labels_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\labelTxt-v1.5\DOTA-v1.5_train_hbb'

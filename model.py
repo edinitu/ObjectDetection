@@ -4,7 +4,7 @@ import torch.nn as nn
 
 class NetworkModel(torch.nn.Module):
 
-    def __init__(self, testing=False):
+    def __init__(self, no_of_classes, obj_in_grid, testing=False):
         super(NetworkModel, self).__init__()
 
         self.testing = testing
@@ -79,8 +79,7 @@ class NetworkModel(torch.nn.Module):
 
         # define linear layers
         self.fc1 = nn.Linear(7 * 7 * 1024, 4096, dtype=torch.float16)
-        # TODO make this layer configurable based on the number of classes we want to detect
-        self.fc2 = nn.Linear(4096, 7 * 7 * 9, dtype=torch.float16)
+        self.fc2 = nn.Linear(4096, 7 * 7 * (5 + no_of_classes) * obj_in_grid, dtype=torch.float16)
 
     def forward(self, x):
         # print('Initial image shape: ', str(x.shape))
@@ -149,7 +148,7 @@ class NetworkModel(torch.nn.Module):
 def example():
     shape = (3, 448, 448)
     rand_tensor = torch.rand(shape)
-    model = NetworkModel()
+    model = NetworkModel(4)
     model.print_network()
     model.forward(rand_tensor)
 

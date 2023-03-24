@@ -118,6 +118,7 @@ def write_to_txt(path, part, bbox):
             write_line(f, part, bbox)
 
 
+# TODO Comment this algorithm
 def crop(cropped_path, txt_path, input, height, width, image_parts, k):
     im = Image.open(input)
     imgwidth, imgheight = im.size
@@ -129,9 +130,11 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
             box = (j, i, j+width, i+height)
             objects_in_one_piece = 0
             for part in image_parts:
+                # TODO This should be configurable
                 if part.get_label() != 'plane' and part.get_label() != 'tennis-court' and \
                         part.get_label() != 'swimming-pool' and part.get_label() != 'ship':
                     continue
+                # TODO This should be configurable
                 if objects_in_one_piece > 15:
                     break
                 if part.get_bounding_box()[0] >= j and part.get_bounding_box()[1] >= i\
@@ -156,6 +159,7 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
     return new_bboxes
 
 
+# TODO Comment this algorithm
 def read_one_image_labels(img_label, dict):
     with open(img_label, 'r') as file:
         img_elements = []
@@ -170,11 +174,16 @@ def read_one_image_labels(img_label, dict):
                 break
             img_element.set_bounding_box(line[0:8])
             img_element.set_label(line[8])
+            # TODO Make this part of code configurable
             if img_element.get_label() != 'plane' and \
                 img_element.get_label() != 'tennis-court' and \
                     img_element.get_label() != 'ship' and \
                     img_element.get_label() != 'swimming-pool':
                 continue
+            # TODO This code is wrong, should be changed with a dict loaded from a config like:
+            #  plane: 0
+            #  ship: 1
+            #  etc..., also add comments
             if line[8] in dict:
                 img_element.set_number_label(str(dict[line[8]]))
             else:
@@ -208,6 +217,7 @@ if __name__ == '__main__':
     TRAIN_LABELS_PATH = paths['train_labels_path']
 
     # labels map
+    # TODO This should be loaded from config
     dict = {}
     n = 0
 

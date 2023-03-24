@@ -1,0 +1,22 @@
+training:
+  train_images_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
+  train_labels_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
+  validation_images_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
+  validation_csv_path: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
+  last_state_file: 'C:\Users\edini\Desktop\weights-20230323T200846Z-001\weights\planes4_best.pt'
+  best_state_file: 'C:\Users\edini\Desktop\weights-20230323T200846Z-001\weights\planes4_best.pt'
+  checkpoint: True
+  batch_size: 1
+  epochs: 100
+  learning_rate: 0.0001
+testing:
+  weights: 'C:\Users\edini\Desktop\weights-20230323T200846Z-001\weights\model_4_classes_best.pt'
+  testing_img: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
+  testing_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
+  oneImage: True
+  image: 'P0179-17'
+general:
+  img_dim: 448
+  no_of_classes: 4
+  grid_dim: 7
+  objects_in_grid: 1

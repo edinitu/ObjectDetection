@@ -10,7 +10,7 @@ import torchvision.ops.boxes as bops
 
 plt.ion()
 
-
+# TODO This live plotting class should be changed
 class DynamicUpdate(Thread):
     """
     Class for plotting training statistics: loss per batch, average processing time per batch etc.
@@ -59,8 +59,7 @@ class DynamicUpdate(Thread):
         return self.xdata, self.ydata
 
 
-classes_dict = {0:'plane', 1:'ship', 2:'tennis-court', 3:'swimming-pool'}
-# TODO Define list of PredictionStats objects and pass it to AveragePrecision to compute it
+classes_dict = {0: 'plane', 1: 'ship', 2: 'tennis-court', 3: 'swimming-pool'}
 all_detections = {'plane': [], 'ship': [], 'tennis-court': [], 'swimming-pool': []}
 positives = {'plane': 0, 'ship': 0, 'tennis-court': 0, 'swimming-pool': 0}
 
@@ -75,9 +74,9 @@ def get_label(classes_list):
 
 
 class FinalPredictions:
-    # TODO This should be configurable
     no_of_grids = 49
 
+    # TODO Add comments
     def __init__(self, outputs, truths):
         self.grids = {'plane': {}, 'ship': {}, 'tennis-court': {}, 'swimming-pool': {}}
         self.truths = {'plane': {}, 'ship': {}, 'tennis-court': {}, 'swimming-pool': {}}
