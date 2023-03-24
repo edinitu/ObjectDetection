@@ -32,11 +32,12 @@ class Annotation:
         return self.__height
 
 
-with open('configs/convertYOLO-config.yml') as f:
-    paths = yaml.safe_load(f)
+with open('configs/pre-processing-config.yaml') as f:
+    config = yaml.safe_load(f)
 
-TRAIN_LABELS_PATH = paths['train_labels_txt']
-TRAIN_LABELS_PATH_CSV = paths['train_labels_csv']
+convertYOLO_cfg = config['convertYOLO']
+txt_folder = convertYOLO_cfg['txt']
+csv_folder = convertYOLO_cfg['csv']
 
 annotations_list = []
 
@@ -57,8 +58,8 @@ def convertToYOLO(bbox):
     return yolo_labels
 
 
-for filename in os.listdir(TRAIN_LABELS_PATH):
-    f = os.path.join(TRAIN_LABELS_PATH, filename)
+for filename in os.listdir(txt_folder):
+    f = os.path.join(txt_folder, filename)
     if os.path.isfile(f):
         with open(f, 'r') as file:
             file.readline()
@@ -76,7 +77,7 @@ for filename in os.listdir(TRAIN_LABELS_PATH):
                 annotations_list.append([annotation.clazz, annotation.x_center, annotation.y_center, annotation.width, annotation.height])
 
         csvfilename = filename.replace('.txt', '.csv')
-        with open(os.path.join(TRAIN_LABELS_PATH_CSV, csvfilename),
+        with open(os.path.join(csv_folder, csvfilename),
                   'w', newline='') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerows(annotations_list)

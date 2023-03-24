@@ -119,7 +119,7 @@ def write_to_txt(path, part, bbox):
 
 
 # TODO Comment this algorithm
-def crop(cropped_path, txt_path, input, height, width, image_parts, k):
+def crop(cropped_path, txt_path, input, height, width, image_parts, labels, max_objects, k):
     im = Image.open(input)
     imgwidth, imgheight = im.size
     bbox_in_imgbox = False
@@ -130,12 +130,9 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
             box = (j, i, j+width, i+height)
             objects_in_one_piece = 0
             for part in image_parts:
-                # TODO This should be configurable
-                if part.get_label() != 'plane' and part.get_label() != 'tennis-court' and \
-                        part.get_label() != 'swimming-pool' and part.get_label() != 'ship':
+                if part.get_label() not in labels:
                     continue
-                # TODO This should be configurable
-                if objects_in_one_piece > 15:
+                if objects_in_one_piece > max_objects:
                     break
                 if part.get_bounding_box()[0] >= j and part.get_bounding_box()[1] >= i\
                         and part.get_bounding_box()[4] <= j+width and part.get_bounding_box()[5] <= i+height:
@@ -160,7 +157,7 @@ def crop(cropped_path, txt_path, input, height, width, image_parts, k):
 
 
 # TODO Comment this algorithm
-def read_one_image_labels(img_label, dict):
+def read_one_image_labels(img_label, labels):
     with open(img_label, 'r') as file:
         img_elements = []
         img_data = ImageMetadata()
@@ -174,23 +171,10 @@ def read_one_image_labels(img_label, dict):
                 break
             img_element.set_bounding_box(line[0:8])
             img_element.set_label(line[8])
-            # TODO Make this part of code configurable
-            if img_element.get_label() != 'plane' and \
-                img_element.get_label() != 'tennis-court' and \
-                    img_element.get_label() != 'ship' and \
-                    img_element.get_label() != 'swimming-pool':
+            if img_element.get_label() not in labels:
                 continue
-            # TODO This code is wrong, should be changed with a dict loaded from a config like:
-            #  plane: 0
-            #  ship: 1
-            #  etc..., also add comments
-            if line[8] in dict:
-                img_element.set_number_label(str(dict[line[8]]))
-            else:
-                global n
-                dict[line[8]] = n
-                n += 1
-                img_element.set_number_label(str(dict[line[8]]))
+            img_element.set_number_label(str(labels[line[8]]))
+
             img_elements.append(img_element)
     return img_elements
 
@@ -209,31 +193,28 @@ def convert_bbox_to_smaller_image(bbox, j, i):
 
 if __name__ == '__main__':
     # load necessary configs from yaml file
-    with open('configs/showIMG-config.yml') as f:
-        configMap = yaml.safe_load(f)
+    with open('configs/pre-processing-config.yaml') as f:
+        config = yaml.safe_load(f)
 
-    paths = configMap['Paths']
-    TRAIN_DATA_PATH = paths['train_data_path']
-    TRAIN_LABELS_PATH = paths['train_labels_path']
-
-    # labels map
-    # TODO This should be loaded from config
-    dict = {}
-    n = 0
-
-    option = configMap['show_one_img']
+    pre_process_cfg = config['processImages']
+    images = pre_process_cfg['images']
+    txt_labels = pre_process_cfg['txt_labels']
+    labels = pre_process_cfg['labels']
+    option = pre_process_cfg['show_one_img']
+    crop_dim = pre_process_cfg['cropped_img_dim']
+    max_objects = pre_process_cfg['max_objects_in_piece']
 
     #   If we set the option in the config to show only one image, then the script will
     # plot that image with its bounding boxes drawn and also (for demo purposes) another
-    # plot with a 'piece' of 448x448 cropped from the original image with its bounding
+    # plot with a 'piece' of set dimension cropped from the original image with its bounding
     # boxes. If the option is not set, then the script will automatically crop all images
-    # from a folder, calculate the new bounding boxes and load them in 2 different folders:
-    # one for the new cropped images and one for the new annotations.
+    # from a folder, compute the new bounding boxes coordinates and load them in 2 different
+    # folders: one for the new cropped images and one for the new annotations.
     if option:
-        item = configMap['img_to_show']
-        image_cropped_path = paths['cropped_imgs_path']
-        elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, item + '.txt'), dict)
-        image_path = os.path.join(TRAIN_DATA_PATH, item + '.png')
+        item = pre_process_cfg['img_to_show']
+        image_cropped_path = pre_process_cfg['cropped_imgs']
+        elements = read_one_image_labels(os.path.join(txt_labels, item + '.txt'), labels)
+        image_path = os.path.join(images, item + '.png')
         img = plt.imread(image_path)
 
         plt.figure()
@@ -246,13 +227,22 @@ if __name__ == '__main__':
         plt.imshow(img)
         plt.plot()
 
-        new_txt_annotations = paths['cropped_labels_path']
+        new_txt_annotations = pre_process_cfg['cropped_labels']
         # Get new bboxes for cropped parts of original image
         k = 0
-        new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)
+        new_bboxes = crop(
+            image_cropped_path,
+            new_txt_annotations,
+            image_path,
+            crop_dim,
+            crop_dim,
+            image_parts,
+            labels,
+            max_objects,
+            k)
 
         # show one "cut" of the bigger image with its bounding boxes
-        image_piece_number = str(configMap['cropped_img_piece'])
+        image_piece_number = str(pre_process_cfg['cropped_img_piece'])
         cropped_imgs_path = os.path.join(image_cropped_path, item + '-' + image_piece_number + '.png')
         img = plt.imread(cropped_imgs_path)
         plt.figure()
@@ -263,17 +253,17 @@ if __name__ == '__main__':
 
         plt.imshow(img)
         plt.plot()
-        plt.show()
+        plt.show(block=True)
 
     else:
-        image_cropped_path = paths['cropped_imgs_path']
-        new_txt_annotations = paths['cropped_labels_path']
+        image_cropped_path = pre_process_cfg['cropped_imgs']
+        new_txt_annotations = pre_process_cfg['cropped_labels']
         k = 0
-        for filename in os.listdir(TRAIN_DATA_PATH):
-            elements = read_one_image_labels(os.path.join(TRAIN_LABELS_PATH, filename.strip('.png') + '.txt'), dict)
+        for filename in os.listdir(images):
+            elements = read_one_image_labels(os.path.join(txt_labels, filename.strip('.png') + '.txt'), labels)
             if not elements:
                 continue
-            image_path = os.path.join(TRAIN_DATA_PATH, filename)
+            image_path = os.path.join(images, filename)
             img = plt.imread(image_path)
 
             # Get all image elements from the original image: bounding boxes and labels.
@@ -281,6 +271,15 @@ if __name__ == '__main__':
             for element in elements:
                 image_parts.append(element)
 
-            # Crop image into 448x448 parts, calculate new bounding boxes coordinates and save them to
+            # Crop image into crop_dim x crop_dim parts, compute new bounding boxes coordinates and save them to
             # new txt files.
-            new_bboxes = crop(image_cropped_path, new_txt_annotations, image_path, 448, 448, image_parts, k)
+            new_bboxes = crop(
+                image_cropped_path,
+                new_txt_annotations,
+                image_path,
+                crop_dim,
+                crop_dim,
+                image_parts,
+                labels,
+                max_objects,
+                k)

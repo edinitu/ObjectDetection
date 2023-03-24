@@ -251,7 +251,7 @@ if __name__ == "__main__":
             if i == 0:
                 loop_begin = time.time_ns()
             image = image.to(device)
-            annotations = annotations.reshape(-1, 49 * (5 + no_of_classes)).to(device)
+            annotations = annotations.reshape(-1, 49 * ((5 + no_of_classes) * objects_in_grid)).to(device)
 
             outputs = network(image)
             assert annotations.shape == outputs.shape
@@ -278,7 +278,7 @@ if __name__ == "__main__":
         # reporting after 1 epoch
         epoch_loss = running_loss / batch_no
         epoch_end = time.time_ns()
-        epoch_duration = (epoch_end - epoch_begin) * (10 ** 9)
+        epoch_duration = (epoch_end - epoch_begin) * (10 ** (-9))
         print(f'Epoch {epoch + 1} ended in {epoch_duration}, loss: {epoch_loss}')
         losses.append(epoch_loss)
         proc_times.append(epoch_duration)

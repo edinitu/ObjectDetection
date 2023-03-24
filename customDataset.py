@@ -44,11 +44,11 @@ class AerialImagesDataset(Dataset):
         image = image.astype(np.float16)
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
-        if image.shape == (448, 448):
+        if image.shape == (self.img_dim, self.img_dim):
             image = utils.grey2rgb(image)
 
         # Retain only RGB values from images with an Alpha channel
-        if image.shape == (448, 448, 4):
+        if image.shape == (self.img_dim, self.img_dim, 4):
             image = image[:, :, 0:3]
 
         # Normalize image to have pixel values in [0,1] interval
@@ -129,7 +129,7 @@ def example():
     """
         Example with first 2 images of training dataset.
         Print images shape and vectors for grid cells that
-        contain 2 objects.
+        contain objects.
     """
     with open('configs/model-config.yaml') as f:
         paths = yaml.safe_load(f)
