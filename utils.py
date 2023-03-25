@@ -1,14 +1,13 @@
-import sys
-
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
 import torch
+import yaml
 from showImageFromDataset import ImageElement
-from metrics import PredictionStats, TRUE_POSITIVE, FALSE_POSITIVE
-import torchvision.ops.boxes as bops
+from metrics import PredictionStats, TRUE_POSITIVE, FALSE_POSITIVE, AveragePrecision
 
 plt.ion()
+
 
 # TODO This live plotting class should be changed
 class DynamicUpdate(Thread):
@@ -59,9 +58,25 @@ class DynamicUpdate(Thread):
         return self.xdata, self.ydata
 
 
-classes_dict = {0: 'plane', 1: 'ship', 2: 'tennis-court', 3: 'swimming-pool'}
-all_detections = {'plane': [], 'ship': [], 'tennis-court': [], 'swimming-pool': []}
-positives = {'plane': 0, 'ship': 0, 'tennis-court': 0, 'swimming-pool': 0}
+labels: dict
+classes_dict: dict
+all_detections: dict
+positives: dict
+
+
+def init():
+    with open('configs/pre-processing-config.yaml') as f:
+        preproc_config = yaml.safe_load(f)
+
+    global labels
+    labels = preproc_config['processImages']['labels']
+
+    global classes_dict
+    classes_dict = {v: k for k, v in labels.items()}
+    global all_detections
+    all_detections = {k: [] for k in labels}
+    global positives
+    positives = {k: 0 for k in labels}
 
 
 def get_label(classes_list):
@@ -71,6 +86,17 @@ def get_label(classes_list):
             max_idx = i
 
     return classes_dict[max_idx]
+
+
+def get_mAP(labels):
+    count = 0
+    sum = 0
+    for key in labels.keys():
+        ap = AveragePrecision(all_detections[key], positives[key])
+        sum += ap.get_average_precision()
+        count += 1
+
+    return sum / count
 
 
 class FinalPredictions:
@@ -312,3 +338,5 @@ def conv_yolo_2_dota(bbox):
     return [top_left_x, top_left_y, top_right_x, top_right_y, bottom_right_x, bottom_right_y,
             bottom_left_x, bottom_right_y]
 
+
+init()

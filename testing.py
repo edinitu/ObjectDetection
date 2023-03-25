@@ -13,16 +13,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from model import NetworkModel
 
-img_test_path = ''
-csv_test_path = ''
-dim = 0
-no_of_classes = 0
-weights = {}
-obj_in_grid = 0
-one_image = False
-draw_ground_truth = False
-image_path = ''
-labels = {}
+img_test_path: str
+csv_test_path: str
+dim: int
+no_of_classes: int
+weights: dict
+obj_in_grid: int
+one_image: bool
+draw_ground_truth: bool
+image_path: str
+labels: dict
 
 
 def init():
@@ -145,14 +145,7 @@ if __name__ == "__main__":
             durations.append(duration_ms)
             final_pred = utils.FinalPredictions(outputs.cpu().to(torch.float32), annotations.to(torch.float32))
 
-        count = 0
-        sum = 0
-        for key in labels.keys():
-            ap = AveragePrecision(utils.all_detections[key], utils.positives[key])
-            sum += ap.get_average_precision()
-            count += 1
-
-        mAP = sum / count
+        mAP = utils.get_mAP(labels)
         print(f'mAP: {mAP}')
 
         avg_inf_time = np.sum(np.asarray(durations)) / len(durations)

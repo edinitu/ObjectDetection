@@ -13,8 +13,8 @@ testing:
   weights: 'C:\Users\edini\Desktop\weights-20230323T200846Z-001\weights\model_4_classes_best.pt'
   testing_img: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
   testing_csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test1_csv'
-  draw_ground_truth: True
-  oneImage: False
+  draw_ground_truth: False
+  oneImage: True
   image: 'P0060-10'
 general:
   img_dim: 448

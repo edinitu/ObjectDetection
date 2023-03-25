@@ -1,5 +1,4 @@
 import sys
-
 import yaml
 import customDataset as dataset
 import model
@@ -8,7 +7,6 @@ import torchvision.transforms as tv
 import torch.utils.data
 from torch.utils.data import DataLoader
 import utils
-from metrics import AveragePrecision
 
 
 def loss_calc(outputs, truth):
@@ -104,9 +102,7 @@ def validation_loop(validation_loader, network):
     network.eval()
     network.set_testing()
     with torch.no_grad():
-        # running_vloss = 0
-        c = '|'
-        sys.stdout.write('Computing avarage precision for validation set...\n')
+        sys.stdout.write('Computing average precision for validation set...\n')
         for k, (img, annt) in enumerate(validation_loader):
             img = img.to(device)
             annt = annt.reshape(-1, 49 * (5 + no_of_classes))
@@ -114,21 +110,9 @@ def validation_loop(validation_loader, network):
             out = network(img)
             for j in range(annt.shape[0]):
                 _ = utils.FinalPredictions(out[j].to(torch.float32).cpu(), annt[j].to(torch.float32))
-            # sys.stdout.write(c)
-            # c += '|'
-            # sys.stdout.flush()
 
-        #    val_loss = loss_calc(out, annt)
-        #     print(f'Validation {k} loss: {val_loss}')
-        #     running_vloss += val_loss.item()
-        # print(f'Validation loss: {running_vloss/k}')
-        # TODO mAP computing should be configurable and done in a separate function, maybe in utils
         # TODO Add loading animation (minimal priority)
-        ap_planes = AveragePrecision(utils.all_detections['plane'], utils.positives['plane'])
-        ap_ship = AveragePrecision(utils.all_detections['ship'], utils.positives['ship'])
-        ap_tennis = AveragePrecision(utils.all_detections['tennis-court'], utils.positives['tennis-court'])
-        ap_swimming = AveragePrecision(utils.all_detections['swimming-pool'], utils.positives['swimming-pool'])
-        mAP = (ap_planes.get_average_precision() + ap_ship.get_average_precision() + ap_tennis.get_average_precision() + ap_swimming.get_average_precision()) / 4
+        mAP = utils.get_mAP(labels)
         print(f'Validation mAP: {mAP}')
         for key in utils.positives.keys():
             utils.positives[key] = 0
@@ -140,20 +124,21 @@ def validation_loop(validation_loader, network):
         return mAP
 
 
-objects_in_grid = 0
-no_of_classes = 0
-train_csv = ''
-train_img = ''
-validation_csv = ''
-validation_img = ''
-dim = 0
-classes = 0
-last_state_file = ''
-best_state_file = ''
-checkpoint = False
-batch_size = 0
-epochs = 0
-learning_rate = 0
+objects_in_grid: int
+no_of_classes: int
+train_csv: str
+train_img: str
+validation_csv: str
+validation_img: str
+dim: int
+classes: int
+last_state_file: str
+best_state_file: str
+checkpoint: bool
+batch_size: int
+epochs: int
+learning_rate: int
+labels: dict
 
 
 def init():
@@ -188,6 +173,11 @@ def init():
     epochs = training_cfg['training']['epochs']
     global learning_rate
     learning_rate = training_cfg['training']['learning_rate']
+
+    with open('configs/pre-processing-config.yaml') as f:
+        general_cfg = yaml.safe_load(f)
+    global labels
+    labels = general_cfg['general']['labels']
 
 
 if __name__ == "__main__":
