@@ -96,7 +96,7 @@ class AerialImagesDataset(Dataset):
                     bbox = annt[1:]
                     if i * grid_dim <= bbox[0] <= (i + 1) * grid_dim and \
                             j * grid_dim <= bbox[1] <= (j + 1) * grid_dim and \
-                            objects_in_cell < self.obj_in_cell - 1:
+                            objects_in_cell < self.obj_in_cell:
                         self.build_grid_vector(grid_vector, bbox, grid_dim, annt[0], objects_in_cell, i, j)
                         objects_in_cell += 1
 

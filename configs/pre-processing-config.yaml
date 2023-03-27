@@ -1,10 +1,10 @@
 processImages:
   images: 'C:\Users\edini\Desktop\licenta\data_set\validation_set\images\part1\images'
   txt_labels: 'C:\Users\edini\Desktop\licenta\data_set\validation_set\labelTxt-v1.5\DOTA-v1.5_val_hbb'
-  cropped_imgs: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_img'
-  cropped_labels: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_txt'
-  show_one_img: False
-  img_to_show: 'P0000'
+  cropped_imgs: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test1_img'
+  cropped_labels: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test1_txt'
+  show_one_img: True
+  img_to_show: 'P1178'
   cropped_img_piece: 0
   cropped_img_dim: 448
   max_objects_in_piece: 15
@@ -15,4 +15,4 @@ processImages:
     swimming-pool: 3
 convertYOLO:
   txt: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_txt'
-  csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test1_csv'
+  csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'

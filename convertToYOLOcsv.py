@@ -74,7 +74,9 @@ for filename in os.listdir(txt_folder):
                 
                 annotation = Annotation(yolo_format[0], yolo_format[1],
                                         yolo_format[2], yolo_format[3], yolo_format[4])
-                annotations_list.append([annotation.clazz, annotation.x_center, annotation.y_center, annotation.width, annotation.height])
+                annotations_list.append(
+                    [annotation.clazz, annotation.x_center, annotation.y_center, annotation.width, annotation.height]
+                )
 
         csvfilename = filename.replace('.txt', '.csv')
         with open(os.path.join(csv_folder, csvfilename),

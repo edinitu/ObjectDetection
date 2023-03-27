@@ -1,3 +1,5 @@
+import os.path
+
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
@@ -6,62 +8,51 @@ import yaml
 from showImageFromDataset import ImageElement
 from metrics import PredictionStats, TRUE_POSITIVE, FALSE_POSITIVE, AveragePrecision
 
-plt.ion()
 
+# TODO This live plotting class should be changed. New class should include methods for:
+#  1. Loss plotting after training is done
+#  2. Average epoch process time after training is done
+#  3. Validation mAP on all epochs
+#  4. Validation average precision evolution for each class.
+#  5. Validation number of detected objects / ground truth (TP / P)
+#  All plots should be saved in a folder.
 
-# TODO This live plotting class should be changed
-class DynamicUpdate(Thread):
+class Plotting:
     """
     Class for plotting training statistics: loss per batch, average processing time per batch etc.
     """
-    # Suppose we know the x range
-    min_x = 0
-    #max_x = 250     # number of batches
 
-    def __init__(self, title, max_x=250):
-        super().__init__()
-        self.title = title
-        self.max_x = max_x
-        self.on_launch()
-        self.xdata = []
-        self.ydata = []
+    def __init__(self, epochs, loss_list, mAP_list, objects_detected, proc_times, path):
+        self.epochs = epochs
+        self.loss_list = loss_list
+        self.mAP_list = mAP_list
+        self.objects_detected = objects_detected
+        self.proc_times = proc_times
+        self.path = path
 
-    def on_launch(self):
-        # Set up plot
-        self.figure, self.ax = plt.subplots()
-        self.lines, = self.ax.plot([], [], 'o')
-        self.ax.set_title(self.title)
-        # Autoscale on unknown axis and known lims on the other
-        self.ax.set_autoscaley_on(True)
-        self.ax.set_xlim(self.min_x, self.max_x)
-        # Other stuff
-        self.ax.grid()
-        ...
+        self.plot_and_save()
 
-    def on_running(self, xdata, ydata):
-        # Update data (with the new _and_ the old points)
-        self.lines.set_xdata(xdata)
-        self.lines.set_ydata(ydata)
-        # Need both of these in order to rescale
-        self.ax.relim()
-        self.ax.autoscale_view()
-        # We need to draw *and* flush
-        self.figure.canvas.draw()
-        self.figure.canvas.flush_events()
-
-    # Example
-    def __call__(self, value, batch_no):
-        self.xdata.append(batch_no)
-        self.ydata.append(value)
-        self.on_running(self.xdata, self.ydata)
-
-        return self.xdata, self.ydata
+    def plot_and_save(self):
+        epoch_list = [i for i in range(self.epochs)]
+        plt.plot(self.loss_list, epoch_list)
+        plt.savefig(os.path.join(self.path, 'training_loss.png'))
+        plt.plot(self.mAP_list, epoch_list)
+        plt.savefig(os.path.join(self.path, 'validation_mAP.png'))
+        plt.plot(self.proc_times, epoch_list)
+        plt.savefig(os.path.join(self.path, 'epoch_processing_time.png'))
+        plt.plot(self.objects_detected, epoch_list)
+        plt.savefig(os.path.join(self.path, 'objects_detected_count.png'))
 
 
 labels: dict
 classes_dict: dict
 all_detections: dict
 positives: dict
+no_of_classes: int
+iou_conf_threshold: int
+iou_nms_threshold: int
+iou_TP_threshold: int
+ratios: list
 
 
 def init():
@@ -77,6 +68,22 @@ def init():
     all_detections = {k: [] for k in labels}
     global positives
     positives = {k: 0 for k in labels}
+    global no_of_classes
+    no_of_classes = len(labels.keys())
+
+    with open('configs/model-config.yaml') as f:
+        model_config = yaml.safe_load(f)
+
+    general_cfg = model_config['general']
+    global iou_conf_threshold
+    iou_conf_threshold = general_cfg['iou_conf_threshold']
+    global iou_nms_threshold
+    iou_nms_threshold = general_cfg['iou_nms_threshold']
+    global iou_TP_threshold
+    iou_TP_threshold = general_cfg['iou_TP_threshold']
+
+    global ratios
+    ratios = []
 
 
 def get_label(classes_list):
@@ -88,7 +95,7 @@ def get_label(classes_list):
     return classes_dict[max_idx]
 
 
-def get_mAP(labels):
+def get_mAP():
     count = 0
     sum = 0
     for key in labels.keys():
@@ -99,16 +106,38 @@ def get_mAP(labels):
     return sum / count
 
 
+def get_TP_count():
+    count = 0
+    for item in all_detections.values():
+        for elem in item:
+            if elem.get_confusion() == 'TP':
+                count += 1
+
+    return count
+
+
+def get_P_count():
+    count = 0
+    for elem in positives.values():
+        count += elem
+
+    return count
+
+
+def get_avg_ratio():
+    return float(np.sum(np.asarray(ratios)) / len(ratios))
+
+
 class FinalPredictions:
     no_of_grids = 49
 
     # TODO Add comments
     def __init__(self, outputs, truths):
-        self.grids = {'plane': {}, 'ship': {}, 'tennis-court': {}, 'swimming-pool': {}}
-        self.truths = {'plane': {}, 'ship': {}, 'tennis-court': {}, 'swimming-pool': {}}
+        self.grids = {k: {} for k in labels}
+        self.truths = {k: {} for k in labels}
         grid_id = 0
-        outputs = torch.reshape(outputs, (49, 9))
-        truths = torch.reshape(truths, (49, 9))
+        outputs = torch.reshape(outputs, (49, 5 + no_of_classes))
+        truths = torch.reshape(truths, (49, 5 + no_of_classes))
         count = 0
         for elem in truths:
             if elem[0] == 1:
@@ -119,7 +148,7 @@ class FinalPredictions:
             count += 1
 
         for elem in outputs:
-            if elem[0] < 0.4:
+            if elem[0] < iou_conf_threshold:
                 grid_id += 1
                 continue
             img_elem = ImageElement()
@@ -157,7 +186,7 @@ class FinalPredictions:
                     convert_to_yolo_full_scale(self.grids[class_key][reference_key].get_yolo_bbox(), reference_key),
                     convert_to_yolo_full_scale(self.grids[class_key][key].get_yolo_bbox(), key)
                 )
-                if iou > 0.4:
+                if iou > iou_nms_threshold:
                     del self.grids[class_key][key]
 
     def add_to_stats_list(self):
@@ -165,6 +194,8 @@ class FinalPredictions:
         Here we populate the list with all detections in the testing set. They can either be
         true positives or false positives. Also increment the number of ground truths positives.
         """
+        tp_count = 0
+        pos_count = 0
         for class_key in self.grids.keys():
             for pred_key in self.grids[class_key].keys():
                 count = 0
@@ -174,10 +205,11 @@ class FinalPredictions:
                         convert_to_yolo_full_scale(self.truths[class_key][truth_key].get_yolo_bbox(), truth_key)
                     )
                     #    print(iou)
-                    if iou > 0.3:
+                    if iou > iou_TP_threshold:
                         all_detections[class_key].append(
                             PredictionStats(self.grids[class_key][pred_key].get_confidence(), TRUE_POSITIVE)
                         )
+                        tp_count += 1
                         count += 1
                         break
                 if count == 0:
@@ -187,6 +219,15 @@ class FinalPredictions:
 
             global positives
             positives[class_key] += len(list(self.truths[class_key].keys()))
+            pos_count += len(list(self.truths[class_key].keys()))
+
+        try:
+            ratios.append(float(tp_count/pos_count))
+        except ZeroDivisionError:
+            if tp_count == 0:
+                ratios.append(float(1))
+            else:
+                ratios.append(float(0))
 
     def convert_to_dota(self):
         for class_key in self.grids.keys():

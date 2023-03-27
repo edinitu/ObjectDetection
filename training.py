@@ -112,8 +112,10 @@ def validation_loop(validation_loader, network):
                 _ = utils.FinalPredictions(out[j].to(torch.float32).cpu(), annt[j].to(torch.float32))
 
         # TODO Add loading animation (minimal priority)
-        mAP = utils.get_mAP(labels)
+        mAP = utils.get_mAP()
         print(f'Validation mAP: {mAP}')
+        mAP_list.append(mAP)
+        objects_detected.append(utils.get_TP_count())
         for key in utils.positives.keys():
             utils.positives[key] = 0
         for key in utils.all_detections.keys():
@@ -130,6 +132,7 @@ train_csv: str
 train_img: str
 validation_csv: str
 validation_img: str
+plots: str
 dim: int
 classes: int
 last_state_file: str
@@ -139,6 +142,10 @@ batch_size: int
 epochs: int
 learning_rate: int
 labels: dict
+loss_list: list
+mAP_list: list
+objects_detected: list
+proc_times: list
 
 
 def init():
@@ -157,6 +164,8 @@ def init():
     validation_csv = training_cfg['training']['validation_csv_path']
     global validation_img
     validation_img = training_cfg['training']['validation_images_path']
+    global plots
+    plots = training_cfg['training']['plots']
     global dim
     dim = training_cfg['general']['img_dim']
     global classes
@@ -178,6 +187,15 @@ def init():
         general_cfg = yaml.safe_load(f)
     global labels
     labels = general_cfg['general']['labels']
+
+    global loss_list
+    loss_list = []
+    global mAP_list
+    mAP_list = []
+    global objects_detected
+    objects_detected = []
+    global proc_times
+    proc_times = []
 
 
 if __name__ == "__main__":
@@ -229,9 +247,6 @@ if __name__ == "__main__":
     torch.autograd.set_detect_anomaly(True)
     network.train()
 
-    losses = []
-    proc_times = []
-
     loop_begin = 0
     max_ap = 0
     for epoch in range(epochs):
@@ -270,7 +285,7 @@ if __name__ == "__main__":
         epoch_end = time.time_ns()
         epoch_duration = (epoch_end - epoch_begin) * (10 ** (-9))
         print(f'Epoch {epoch + 1} ended in {epoch_duration}, loss: {epoch_loss}')
-        losses.append(epoch_loss)
+        loss_list.append(epoch_loss)
         proc_times.append(epoch_duration)
         ap = validation_loop(validation_loader, network)
         if ap > max_ap:
@@ -283,3 +298,7 @@ if __name__ == "__main__":
         network.train()
         running_loss = 0
         batch_no = 0
+
+    print('\n\nSaving plots for training statistics')
+    utils.Plotting(epochs, loss_list, mAP_list, objects_detected, proc_times, plots)
+    print('DONE')

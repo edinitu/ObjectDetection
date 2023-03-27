@@ -145,8 +145,15 @@ if __name__ == "__main__":
             durations.append(duration_ms)
             final_pred = utils.FinalPredictions(outputs.cpu().to(torch.float32), annotations.to(torch.float32))
 
-        mAP = utils.get_mAP(labels)
+        mAP = utils.get_mAP()
         print(f'mAP: {mAP}')
 
         avg_inf_time = np.sum(np.asarray(durations)) / len(durations)
         print(f'Average inference time: {avg_inf_time} ms')
+
+        true_pos_count = utils.get_TP_count()
+        all_pos_count = utils.get_P_count()
+        print(f'Objects detected correctly count: {true_pos_count}'
+              f'\n All objects in testing set: {all_pos_count} \n'
+              f'Ratio: {true_pos_count/all_pos_count} \n'
+              f'Average ratio per image: {utils.get_avg_ratio()}')
