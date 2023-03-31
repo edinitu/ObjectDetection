@@ -19,7 +19,7 @@ dim: int
 no_of_classes: int
 weights: dict
 obj_in_grid: int
-one_image: bool
+one_dataset_image: bool
 draw_ground_truth: bool
 image_path: str
 labels: dict
@@ -43,9 +43,11 @@ def init():
     weights = torch.load(testing_cfg['weights'])
     global obj_in_grid
     obj_in_grid = general_cfg['objects_in_grid']
-    global one_image
-    one_image = testing_cfg['oneImage']
-    if one_image:
+    global one_dataset_image
+    one_dataset_image = testing_cfg['oneDatasetImage']
+    # TODO Add one_random_image field and implement detection for any img dimension.
+    #   Also add checks for one_dataset_image (If its dimensions match the set dimension).
+    if one_dataset_image:
         global image_path
         image_path = testing_cfg['image']
         global draw_ground_truth
@@ -75,11 +77,13 @@ if __name__ == "__main__":
     network.eval()
     network.cuda()
 
-    if one_image:
+    if one_dataset_image:
         annotations = pd.read_csv(os.path.join(csv_test_path, image_path + '.csv'), header=None)
         annotations = np.array(annotations)
         image = plt.imread(os.path.join(img_test_path, image_path + '.png'))
         image = image.astype(np.float16)
+
+        # TODO These image checks should be in utils
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
         if image.shape == (dim, dim):

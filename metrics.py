@@ -69,9 +69,12 @@ class AveragePrecision:
                 predicted += 1
             elif elem.get_confusion() == FALSE_POSITIVE:
                 predicted += 1
+            try:
+                recalls.append(guessed/self.positives_count)
+                precisions.append(guessed/predicted)
+            except ZeroDivisionError:
+                recalls.append(-1)
 
-            recalls.append(guessed/self.positives_count)
-            precisions.append(guessed/predicted)
             if idx == 0:
                 precisions.append(guessed/predicted)
                 idx += 1

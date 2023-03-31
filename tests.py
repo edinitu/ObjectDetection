@@ -1,4 +1,3 @@
-import time
 import unittest
 import training
 from convertToYOLOcsv import convertToYOLO
@@ -10,11 +9,13 @@ from metrics import PredictionStats, AveragePrecision, TRUE_POSITIVE, FALSE_POSI
 class TestMethods(unittest.TestCase):
 
     def test_loss(self):
-        outputs = torch.rand((64, 2058))
-        truth = torch.rand((64, 2058))
+        outputs = torch.rand((64, 7*7*(5+4)))
+        truth = torch.rand((64, 7*7*(5+4)))
         for i in range(64):
-            for j in range(0, 2058, 42):
+            for j in range(0, 7*7*(5+4), 9):
                 truth[i, j] = 1
+        training.no_of_classes = 4
+        training.objects_in_grid = 1
         result = training.loss_calc(outputs, truth)
         # check that loss can't take very large values
         self.assertTrue(result.item() < 500)
@@ -42,13 +43,8 @@ class TestMethods(unittest.TestCase):
         self.assertEqual(expected_iou, actual_iou)
 
     def test_plot(self):
-        d = utils.DynamicUpdate('test')
-        utils.plot_dynamic_graph(d, 1, 1)
-        time.sleep(2)
-        utils.plot_dynamic_graph(d, 1, 2)
-        time.sleep(2)
-        utils.plot_dynamic_graph(d, 2, 3)
-        time.sleep(2)
+        # TODO Test plotting class
+        pass
 
     def test_yolo_conversion(self):
         bbox_initial_points = [100, 100, 400, 100, 400, 400, 100, 400]
@@ -139,3 +135,6 @@ class TestMethods(unittest.TestCase):
         ap = AveragePrecision(utils.all_detections['ship'], utils.positives['ship'])
         self.assertTrue(ap.get_average_precision() == 0.5)
 
+    def test_crop_img(self):
+        dic = utils.crop_img('/home/campus/Desktop/avioane.jpg', 448)
+        self.assertEqual(36, len(dic.keys()))

@@ -1,5 +1,5 @@
 import os.path
-
+from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
@@ -8,14 +8,6 @@ import yaml
 from showImageFromDataset import ImageElement
 from metrics import PredictionStats, TRUE_POSITIVE, FALSE_POSITIVE, AveragePrecision
 
-
-# TODO This live plotting class should be changed. New class should include methods for:
-#  1. Loss plotting after training is done
-#  2. Average epoch process time after training is done
-#  3. Validation mAP on all epochs
-#  4. Validation average precision evolution for each class.
-#  5. Validation number of detected objects / ground truth (TP / P)
-#  All plots should be saved in a folder.
 
 class Plotting:
     """
@@ -34,14 +26,18 @@ class Plotting:
 
     def plot_and_save(self):
         epoch_list = [i for i in range(self.epochs)]
-        plt.plot(self.loss_list, epoch_list)
+        plt.plot(epoch_list, self.loss_list)
         plt.savefig(os.path.join(self.path, 'training_loss.png'))
-        plt.plot(self.mAP_list, epoch_list)
+        plt.clf()
+        plt.plot(epoch_list, self.mAP_list)
         plt.savefig(os.path.join(self.path, 'validation_mAP.png'))
-        plt.plot(self.proc_times, epoch_list)
-        plt.savefig(os.path.join(self.path, 'epoch_processing_time.png'))
-        plt.plot(self.objects_detected, epoch_list)
+        plt.clf()
+        plt.plot(epoch_list, self.proc_times)
+        plt.savefig(os.path.join(self.path, 'epoch_processing_time_minutes.png'))
+        plt.clf()
+        plt.plot(epoch_list, self.objects_detected)
         plt.savefig(os.path.join(self.path, 'objects_detected_count.png'))
+        plt.close()
 
 
 labels: dict
@@ -128,6 +124,36 @@ def get_avg_ratio():
     return float(np.sum(np.asarray(ratios)) / len(ratios))
 
 
+class FullScalePrediction:
+    """
+        Class used for displaying the predicted bounding box over an image with random dimension.
+        Holds the list of predictions from all the fixed dimension pieces that were sent as input
+        in the network.
+    """
+    def __init__(self):
+        self.final_predictions_list = {}
+
+    def add_prediction(self, tup, prediction):
+        self.final_predictions_list[tup] = prediction
+
+    def to_full_scale(self):
+        pass
+
+    def draw(self):
+        pass
+
+
+def crop_img(img, dim) -> dict:
+    im = Image.open(img)
+    cropped_list = {}
+    for i in range(0, im.size[0], dim):
+        for j in range(0, im.size[1], dim):
+            cropped = (j, i, j+dim, i+dim)
+            cropped_list[(i, j)] = cropped
+    im.close()
+    return cropped_list
+
+
 class FinalPredictions:
     no_of_grids = 49
 
@@ -192,7 +218,7 @@ class FinalPredictions:
     def add_to_stats_list(self):
         """
         Here we populate the list with all detections in the testing set. They can either be
-        true positives or false positives. Also increment the number of ground truths positives.
+        true positives or false positives. Also increment the number of ground truth positives.
         """
         tp_count = 0
         pos_count = 0

@@ -186,7 +186,7 @@ def init():
     with open('configs/pre-processing-config.yaml') as f:
         general_cfg = yaml.safe_load(f)
     global labels
-    labels = general_cfg['general']['labels']
+    labels = general_cfg['processImages']['labels']
 
     global loss_list
     loss_list = []

@@ -42,6 +42,7 @@ class AerialImagesDataset(Dataset):
 
         image = plt.imread(self.images[idx])
         image = image.astype(np.float16)
+        # TODO Move these checks to utils
         # Some images from the dataset are greyscale, so they need to be
         # converted to RGB before placing them as input in the network.
         if image.shape == (self.img_dim, self.img_dim):

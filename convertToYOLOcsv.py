@@ -32,16 +32,6 @@ class Annotation:
         return self.__height
 
 
-with open('configs/pre-processing-config.yaml') as f:
-    config = yaml.safe_load(f)
-
-convertYOLO_cfg = config['convertYOLO']
-txt_folder = convertYOLO_cfg['txt']
-csv_folder = convertYOLO_cfg['csv']
-
-annotations_list = []
-
-
 def convertToYOLO(bbox):
     yolo_labels = []
     x_midpoint = (float(bbox[0])+float(bbox[4]))/2
@@ -58,29 +48,40 @@ def convertToYOLO(bbox):
     return yolo_labels
 
 
-for filename in os.listdir(txt_folder):
-    f = os.path.join(txt_folder, filename)
-    if os.path.isfile(f):
-        with open(f, 'r') as file:
-            file.readline()
-            file.readline()
-            while True:
-                line = file.readline().split(' ')
-                if line == ['']:
-                    break
-                bbox = line[0:8]
-                yolo_format = [int(line[9].replace('\n', ''))]
-                yolo_format.extend(convertToYOLO(bbox))
-                
-                annotation = Annotation(yolo_format[0], yolo_format[1],
-                                        yolo_format[2], yolo_format[3], yolo_format[4])
-                annotations_list.append(
-                    [annotation.clazz, annotation.x_center, annotation.y_center, annotation.width, annotation.height]
-                )
+if __name__ == '__main__':
+    with open('configs/pre-processing-config.yaml') as f:
+        config = yaml.safe_load(f)
 
-        csvfilename = filename.replace('.txt', '.csv')
-        with open(os.path.join(csv_folder, csvfilename),
-                  'w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerows(annotations_list)
-            annotations_list.clear()
+    convertYOLO_cfg = config['convertYOLO']
+    txt_folder = convertYOLO_cfg['txt']
+    csv_folder = convertYOLO_cfg['csv']
+
+    annotations_list = []
+
+    for filename in os.listdir(txt_folder):
+        f = os.path.join(txt_folder, filename)
+        if os.path.isfile(f):
+            with open(f, 'r') as file:
+                file.readline()
+                file.readline()
+                while True:
+                    line = file.readline().split(' ')
+                    if line == ['']:
+                        break
+                    bbox = line[0:8]
+                    yolo_format = [int(line[9].replace('\n', ''))]
+                    yolo_format.extend(convertToYOLO(bbox))
+
+                    annotation = Annotation(yolo_format[0], yolo_format[1],
+                                            yolo_format[2], yolo_format[3], yolo_format[4])
+                    annotations_list.append(
+                        [annotation.clazz, annotation.x_center, annotation.y_center, annotation.width,
+                         annotation.height]
+                    )
+
+            csvfilename = filename.replace('.txt', '.csv')
+            with open(os.path.join(csv_folder, csvfilename),
+                      'w', newline='') as csv_file:
+                writer = csv.writer(csv_file)
+                writer.writerows(annotations_list)
+                annotations_list.clear()
