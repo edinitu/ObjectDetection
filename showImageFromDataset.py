@@ -18,7 +18,7 @@ class ImageElement:
         self.confidence = 0
         self.yolo_bbox = []
 
-    def set_bounding_box(self, coordinates):
+    def set_bounding_box_init(self, coordinates):
         for coordinate in coordinates:
             self.bounding_box.append(float(coordinate))
 
@@ -169,7 +169,7 @@ def read_one_image_labels(img_label, labels):
             line = file.readline().split(' ')
             if line == ['']:
                 break
-            img_element.set_bounding_box(line[0:8])
+            img_element.set_bounding_box_init(line[0:8])
             img_element.set_label(line[8])
             if img_element.get_label() not in labels:
                 continue

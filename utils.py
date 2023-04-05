@@ -49,6 +49,7 @@ iou_conf_threshold: int
 iou_nms_threshold: int
 iou_TP_threshold: int
 ratios: list
+dim: int
 
 
 def init():
@@ -66,6 +67,8 @@ def init():
     positives = {k: 0 for k in labels}
     global no_of_classes
     no_of_classes = len(labels.keys())
+    global dim
+    dim = preproc_config['processImages']['cropped_img_dim']
 
     with open('configs/model-config.yaml') as f:
         model_config = yaml.safe_load(f)
@@ -137,10 +140,22 @@ class FullScalePrediction:
         self.final_predictions_list[tup] = prediction
 
     def to_full_scale(self):
-        pass
+        for key in self.final_predictions_list.keys():
+            for class_key in self.final_predictions_list[key].get_grids().keys():
+                for grid_id in self.final_predictions_list[key].get_grids()[class_key]:
+                    new_bbox = []
+                    t = 0
+                    for point in self.final_predictions_list[key].get_grids()[class_key][grid_id].get_bounding_box():
+                        if t % 2 == 0:
+                            new_bbox.append(point + key[1])
+                        else:
+                            new_bbox.append(point + key[0])
+                        t += 1
+                    self.final_predictions_list[key].set_grid(class_key, grid_id, new_bbox)
 
     def draw(self):
-        pass
+        for elem in self.final_predictions_list.values():
+            elem.draw_boxes()
 
 
 def crop_img(img, dim) -> dict:
@@ -149,7 +164,7 @@ def crop_img(img, dim) -> dict:
     for i in range(0, im.size[0], dim):
         for j in range(0, im.size[1], dim):
             cropped = (j, i, j+dim, i+dim)
-            cropped_list[(i, j)] = cropped
+            cropped_list[(i, j)] = im.crop(cropped)
     im.close()
     return cropped_list
 
@@ -273,6 +288,9 @@ class FinalPredictions:
 
     def get_grids(self):
         return self.grids
+
+    def set_grid(self, class_key, grid_id, value):
+        self.grids[class_key][grid_id].set_bbox(value)
 
 
 def grey2rgb(img):
