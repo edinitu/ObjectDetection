@@ -8,7 +8,6 @@ import customDataset as dataset
 import torchvision.transforms as tv
 from torch.utils.data import DataLoader
 import utils
-from metrics import AveragePrecision
 import pandas as pd
 import matplotlib.pyplot as plt
 from model import NetworkModel
@@ -48,8 +47,7 @@ def init():
     one_dataset_image = testing_cfg['oneDatasetImage']
     global one_random_image
     one_random_image = testing_cfg['oneRandomImage']
-    # TODO Add one_random_image field and implement detection for any img dimension.
-    #   Also add checks for one_dataset_image (If its dimensions match the set dimension).
+    # TODO Add checks for one_dataset_image (If its dimensions match the set dimension).
     if one_dataset_image or one_random_image:
         global image_path
         image_path = testing_cfg['image']
@@ -81,34 +79,14 @@ if __name__ == "__main__":
     network.cuda()
 
     if one_dataset_image:
+        print('Testing one image from DOTA dataset')
         annotations = pd.read_csv(os.path.join(csv_test_path, image_path + '.csv'), header=None)
         annotations = np.array(annotations)
+
         image = plt.imread(os.path.join(img_test_path, image_path + '.png'))
         image = image.astype(np.float16)
-
-        # TODO These image checks should be in utils
-        # Some images from the dataset are greyscale, so they need to be
-        # converted to RGB before placing them as input in the network.
-        if image.shape == (dim, dim):
-            image = utils.grey2rgb(image)
-
-        # Retain only RGB values from images with an Alpha channel
-        if image.shape == (dim, dim, 4):
-            image = image[:, :, 0:3]
-
-        # Normalize image to have pixel values in [0,1] interval
-        if np.max(image) - np.min(image) != 0:
-            image = (image - np.min(image)) / (np.max(image) - np.min(image))
-
-        plt.figure()
-        transform = tv.Compose([tv.ToTensor()])
-        image = transform(image)
-        image = torch.reshape(image, (1, 3, dim, -1))
-        annotations = dataset.AerialImagesDataset.no_args_construct().build_grids_annotations(annotations)
-        annotations = annotations.astype(np.float16)
-        annotations = transform(annotations)
-        image = image.to(torch.device('cuda'))
-        annotations = annotations.reshape(1, 49 * (5 + no_of_classes))
+        image = utils.image_checks(image, dim, dim)
+        image, annotations = utils.torch_prepare(image, annotations)
 
         with torch.no_grad():
             start = time.time_ns()
@@ -118,6 +96,7 @@ if __name__ == "__main__":
         inference_time = (end - start) * (10**(-6))
         print(f'Inference time: {inference_time}')
         print('Detected objects: ')
+        plt.figure()
         final_pred = utils.FinalPredictions(outputs.cpu(), annotations)
         annt_test = utils.FinalPredictions(annotations, annotations)
         image = plt.imread(os.path.join(img_test_path, image_path + '.png'))
@@ -128,44 +107,20 @@ if __name__ == "__main__":
         plt.show(block=True)
 
     elif one_random_image:
+        print('Testing one random image')
         cropped = utils.crop_img(image_path, dim)
         full_scale_pred = utils.FullScalePrediction()
         for key in cropped:
+            # TODO Try starting different threads for all cropped images
             cropped[key] = np.float16(cropped[key])
-            # TODO These image checks should be in utils
-            # Some images from the dataset are greyscale, so they need to be
-            # converted to RGB before placing them as input in the network.
-            if cropped[key].shape == (dim, dim):
-                image = utils.grey2rgb(cropped[key])
-
-            # Retain only RGB values from images with an Alpha channel
-            if cropped[key].shape == (dim, dim, 4):
-                cropped[key] = cropped[key][:, :, 0:3]
-
-            # Normalize image to have pixel values in [0,1] interval
-            if np.max(cropped[key]) - np.min(cropped[key]) != 0:
-                cropped[key] = (cropped[key] - np.min(cropped[key])) / (np.max(cropped[key]) - np.min(cropped[key]))
-
-            transform = tv.Compose([tv.ToTensor()])
-            cropped[key] = transform(cropped[key])
-            cropped[key] = torch.reshape(cropped[key], (1, 3, dim, -1))
-            annotations = dataset.AerialImagesDataset.no_args_construct().build_grids_annotations(np.zeros((1, 5)))
-            annotations = annotations.astype(np.float16)
-            annotations = transform(annotations)
-            cropped[key] = cropped[key].to(torch.device('cuda'))
-            annotations = annotations.reshape(1, 49 * (5 + no_of_classes))
+            cropped[key] = utils.image_checks(cropped[key], dim, dim)
+            cropped[key], annotations = utils.torch_prepare(cropped[key], np.zeros((1, 5)))
 
             with torch.no_grad():
-                start = time.time_ns()
                 outputs = network(cropped[key])
-                end = time.time_ns()
 
-            # inference_time = (end - start) * (10 ** (-6))
-            # print(f'Inference time: {inference_time}')
-            # print('Detected objects: ')
             final_pred = utils.FinalPredictions(outputs.cpu(), annotations)
             full_scale_pred.add_prediction(key, final_pred)
-            #annt_test = utils.FinalPredictions(annotations, annotations)
 
         plt.figure()
         img = plt.imread(image_path)

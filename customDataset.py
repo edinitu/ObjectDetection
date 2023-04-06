@@ -31,7 +31,7 @@ class AerialImagesDataset(Dataset):
 
     @classmethod
     def no_args_construct(cls):
-        return cls(None, None, 448, 4, 1)
+        return cls(None, None, 448, 1, 1)
 
     def __len__(self):
         return len(self.images)
@@ -42,20 +42,8 @@ class AerialImagesDataset(Dataset):
 
         image = plt.imread(self.images[idx])
         image = image.astype(np.float16)
-        # TODO Move these checks to utils
-        # Some images from the dataset are greyscale, so they need to be
-        # converted to RGB before placing them as input in the network.
-        if image.shape == (self.img_dim, self.img_dim):
-            image = utils.grey2rgb(image)
-
-        # Retain only RGB values from images with an Alpha channel
-        if image.shape == (self.img_dim, self.img_dim, 4):
-            image = image[:, :, 0:3]
-
-        # Normalize image to have pixel values in [0,1] interval
-        if np.max(image) - np.min(image) != 0:
-            image = (image - np.min(image)) / (np.max(image) - np.min(image))
-        else:
+        image = utils.image_checks(image, self.img_dim, self.img_dim)
+        if image == np.zeros(1):
             # if image cannot be normalized, something is wrong, choose another random image
             index = np.random.randint(0, len(self.images))
             image, grid_annotations = self.__getitem__(index)

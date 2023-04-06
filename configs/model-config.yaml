@@ -11,7 +11,7 @@ training:
   epochs: 4
   learning_rate: 0.00001
 testing:
-  weights: 'C:\Users\edini\Desktop\model_4_classes_best.pt'
+  weights: 'C:\Users\edini\Desktop\weights-20230323T200846Z-001\weights\planes4_best.pt'
   testing_img: '/home/campus/Desktop/data/multi_class_validation/img'
   testing_csv: '/home/campus/Desktop/data/multi_class_validation/csv'
   draw_ground_truth: False
@@ -20,9 +20,9 @@ testing:
   image: 'C:\Users\edini\Desktop\3da0b873-fdde-4faf-9a85-021248c7dacf.jpg'
 general:
   img_dim: 448
-  no_of_classes: 4
+  no_of_classes: 1
   grid_dim: 7
   objects_in_grid: 1
-  iou_conf_threshold: 0.4
-  iou_nms_threshold: 0.4
+  iou_conf_threshold: 0.5
+  iou_nms_threshold: 0.2
   iou_TP_threshold: 0.3

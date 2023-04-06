@@ -3,8 +3,10 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 from threading import Thread
+import torchvision.transforms as tv
 import torch
 import yaml
+import customDataset as dataset
 from showImageFromDataset import ImageElement
 from metrics import PredictionStats, TRUE_POSITIVE, FALSE_POSITIVE, AveragePrecision
 
@@ -13,7 +15,6 @@ class Plotting:
     """
     Class for plotting training statistics: loss per batch, average processing time per batch etc.
     """
-
     def __init__(self, epochs, loss_list, mAP_list, objects_detected, proc_times, path):
         self.epochs = epochs
         self.loss_list = loss_list
@@ -140,6 +141,7 @@ class FullScalePrediction:
         self.final_predictions_list[tup] = prediction
 
     def to_full_scale(self):
+        # TODO This code works but is ugly. Prettify and also comment
         for key in self.final_predictions_list.keys():
             for class_key in self.final_predictions_list[key].get_grids().keys():
                 for grid_id in self.final_predictions_list[key].get_grids()[class_key]:
@@ -182,9 +184,7 @@ class FinalPredictions:
         count = 0
         for elem in truths:
             if elem[0] == 1:
-                img_elem = ImageElement()
-                img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
-                img_elem.set_label(get_label([elem[5], elem[6], elem[7], elem[8]]))
+                img_elem = self.build_img_elem(elem)
                 self.truths[img_elem.get_label()][count] = img_elem
             count += 1
 
@@ -192,10 +192,7 @@ class FinalPredictions:
             if elem[0] < iou_conf_threshold:
                 grid_id += 1
                 continue
-            img_elem = ImageElement()
-            img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
-            img_elem.set_confidence(elem[0])
-            img_elem.set_label(get_label([elem[5], elem[6], elem[7], elem[8]]))
+            img_elem = self.build_img_elem(elem)
             self.grids[img_elem.get_label()][grid_id] = img_elem
             grid_id += 1
 
@@ -284,7 +281,16 @@ class FinalPredictions:
             for class_key in self.grids.keys():
                 for elem in self.grids[class_key].values():
                     elem.draw_box()
-                    print(elem.get_label())
+
+    def build_img_elem(self, elem) -> ImageElement:
+        img_elem = ImageElement()
+        img_elem.set_yolo_bbox([elem[1], elem[2], elem[3], elem[4]])
+        img_elem.set_confidence(elem[0])
+        labels_to_get = []
+        for i in range(len(labels)):
+            labels_to_get.append(elem[5 + i])
+        img_elem.set_label(get_label(labels_to_get))
+        return img_elem
 
     def get_grids(self):
         return self.grids
@@ -407,6 +413,37 @@ def draw_all_bboxes_from_annotations(annt):
             img.set_bbox(bbox)
             img.draw_box()
         grid_id += 1
+
+
+def image_checks(image, size_x, size_y) -> np.ndarray:
+    # Some images from the dataset are greyscale, so they need to be
+    # converted to RGB before placing them as input in the network.
+    if image.shape == (size_x, size_y):
+        image = grey2rgb(image)
+
+    # Retain only RGB values from images with an Alpha channel
+    if image.shape == (size_x, size_y, 4):
+        image = image[:, :, 0:3]
+
+    # Normalize image to have pixel values in [0,1] interval
+    if np.max(image) - np.min(image) != 0:
+        image = (image - np.min(image)) / (np.max(image) - np.min(image))
+    else:
+        return np.zeros(1)
+
+    return image
+
+
+def torch_prepare(image, annotations) -> tuple:
+    transform = tv.Compose([tv.ToTensor()])
+    image = transform(image)
+    image = torch.reshape(image, (1, 3, dim, -1))
+    annotations = dataset.AerialImagesDataset.no_args_construct().build_grids_annotations(annotations)
+    annotations = annotations.astype(np.float16)
+    annotations = transform(annotations)
+    image = image.to(torch.device('cuda'))
+    annotations = annotations.reshape(1, 49 * (5 + no_of_classes))
+    return image, annotations
 
 
 def conv_yolo_2_dota(bbox):

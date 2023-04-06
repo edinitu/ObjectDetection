@@ -75,7 +75,10 @@ class ImageElement:
                 x.append(self.bounding_box[i])
             else:
                 y.append(self.bounding_box[i])
+
+        plt.rcParams.update({'font.size': 7})
         plt.plot(x[0:2], y[0:2], color=color, label=self.label)
+        plt.text(x[0], y[0], self.label)
         plt.plot(x[1:3], y[1:3], color=color)
         plt.plot(x[2:4], y[2:4], color=color)
         plt.plot([x[3], x[0]], [y[3], y[0]], color=color)

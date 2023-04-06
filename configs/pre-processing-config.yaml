@@ -10,9 +10,6 @@ processImages:
   max_objects_in_piece: 15
   labels:
     plane: 0
-    ship: 1
-    tennis-court: 2
-    swimming-pool: 3
 convertYOLO:
   txt: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_txt'
   csv: 'C:\Users\edini\Desktop\licenta\data_set\training_set\test_csv'
