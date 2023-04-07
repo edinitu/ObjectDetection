@@ -141,23 +141,39 @@ class FullScalePrediction:
         self.final_predictions_list[tup] = prediction
 
     def to_full_scale(self):
-        # TODO This code works but is ugly. Prettify and also comment
+        """
+            Method that converts all bboxes coordinates from their image section coordinates to original
+            image coordinates.
+        """
         for key in self.final_predictions_list.keys():
+            # iterate through all sections cropped from original image
             for class_key in self.final_predictions_list[key].get_grids().keys():
+                # iterate through all possible classes that can be predicted.
                 for grid_id in self.final_predictions_list[key].get_grids()[class_key]:
-                    new_bbox = []
-                    t = 0
-                    for point in self.final_predictions_list[key].get_grids()[class_key][grid_id].get_bounding_box():
-                        if t % 2 == 0:
-                            new_bbox.append(point + key[1])
-                        else:
-                            new_bbox.append(point + key[0])
-                        t += 1
-                    self.final_predictions_list[key].set_grid(class_key, grid_id, new_bbox)
+                    # iterate through all predictions per class
+                    self.set_full_scale_bbox(key, class_key, grid_id)
 
     def draw(self):
         for elem in self.final_predictions_list.values():
             elem.draw_boxes()
+
+    def set_full_scale_bbox(self, key, class_key, grid_id):
+        """
+            Method that computes the bbox coordinates relative to original image dimensions.
+Adds the coordinates where the image was cropped to the predicted coordinates.
+        :param key: is a tuple with the original image coordinates where the section was cropped.
+        :param class_key: is the key in the class -> bboxes mapping.
+        :param grid_id: is used to get the section coordinates from grid coordinates. Here it's used just as an index.
+        """
+        new_bbox = []
+        t = 0
+        for point in self.final_predictions_list[key].get_grids()[class_key][grid_id].get_bounding_box():
+            if t % 2 == 0:
+                new_bbox.append(point + key[1])
+            else:
+                new_bbox.append(point + key[0])
+            t += 1
+        self.final_predictions_list[key].set_grid(class_key, grid_id, new_bbox)
 
 
 def crop_img(img, dim) -> dict:
@@ -268,6 +284,10 @@ class FinalPredictions:
                 ratios.append(float(0))
 
     def convert_to_dota(self):
+        """
+            Method where bbox coordinates are converted from YOLO format (x, y, w, h)
+to DOTA format ((x, y) for all 4 vertices)
+        """
         for class_key in self.grids.keys():
             for key in self.grids[class_key].keys():
                 self.grids[class_key][key].convert_yolo_to_dota(key)

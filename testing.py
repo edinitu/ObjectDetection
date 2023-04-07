@@ -1,5 +1,6 @@
 import os.path
 import sys
+import threading
 import time
 import numpy as np
 import torch
@@ -47,7 +48,6 @@ def init():
     one_dataset_image = testing_cfg['oneDatasetImage']
     global one_random_image
     one_random_image = testing_cfg['oneRandomImage']
-    # TODO Add checks for one_dataset_image (If its dimensions match the set dimension).
     if one_dataset_image or one_random_image:
         global image_path
         image_path = testing_cfg['image']
@@ -59,6 +59,18 @@ def init():
 
     global labels
     labels = preproc_config['processImages']['labels']
+
+
+def test_img_section(key, d):
+    d[key] = np.float16(d[key])
+    d[key] = utils.image_checks(d[key], dim, dim)
+    d[key], annotations = utils.torch_prepare(d[key], np.zeros((1, 5)))
+
+    with torch.no_grad():
+        outputs = network(cropped[key])
+
+    final_pred = utils.FinalPredictions(outputs.cpu(), annotations)
+    full_scale_pred.add_prediction(key, final_pred)
 
 
 if __name__ == "__main__":
@@ -110,17 +122,13 @@ if __name__ == "__main__":
         print('Testing one random image')
         cropped = utils.crop_img(image_path, dim)
         full_scale_pred = utils.FullScalePrediction()
+        threads = []
         for key in cropped:
-            # TODO Try starting different threads for all cropped images
-            cropped[key] = np.float16(cropped[key])
-            cropped[key] = utils.image_checks(cropped[key], dim, dim)
-            cropped[key], annotations = utils.torch_prepare(cropped[key], np.zeros((1, 5)))
+            thread = threading.Thread(test_img_section(key, cropped))
+            threads.append(thread)
 
-            with torch.no_grad():
-                outputs = network(cropped[key])
-
-            final_pred = utils.FinalPredictions(outputs.cpu(), annotations)
-            full_scale_pred.add_prediction(key, final_pred)
+        [t.start() for t in threads]
+        [t.join() for t in threads]
 
         plt.figure()
         img = plt.imread(image_path)
