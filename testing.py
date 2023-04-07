@@ -124,7 +124,7 @@ if __name__ == "__main__":
         full_scale_pred = utils.FullScalePrediction()
         threads = []
         for key in cropped:
-            thread = threading.Thread(test_img_section(key, cropped))
+            thread = threading.Thread(target=test_img_section, args=(key, cropped))
             threads.append(thread)
 
         [t.start() for t in threads]

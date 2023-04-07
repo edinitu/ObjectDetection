@@ -1,4 +1,6 @@
 import os.path
+import time
+
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
@@ -51,7 +53,7 @@ iou_nms_threshold: int
 iou_TP_threshold: int
 ratios: list
 dim: int
-
+validation = False
 
 def init():
     with open('configs/pre-processing-config.yaml') as f:
@@ -376,6 +378,40 @@ def get_iou(bbox1, bbox2):
     return i/u
 
 
+def get_giou(bbox1, bbox2):
+    boxA = [bbox1[0] - bbox1[2] / 2, bbox1[1] - bbox1[3] / 2, bbox1[0] + bbox1[2] / 2, bbox1[1] + bbox1[3] / 2]
+    boxB = [bbox2[0] - bbox2[2] / 2, bbox2[1] - bbox2[3] / 2, bbox2[0] + bbox2[2] / 2, bbox2[1] + bbox2[3] / 2]
+
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    # Calculate the area of intersection rectangle
+    interArea = max(torch.tensor(0), xB - xA + 1) * max(torch.tensor(0), yB - yA + 1)
+    interArea = interArea.to(torch.float32)
+
+    # Calculate the area of the two bounding boxes
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+    boxAArea = boxAArea.to(torch.float32)
+    boxBArea = boxBArea.to(torch.float32)
+
+    # Calculate the IOU
+    iou = interArea / (boxAArea + boxBArea - interArea)
+
+    enclosed_x1 = min(boxA[0], boxA[0])
+    enclosed_y1 = min(boxA[1], boxA[1])
+    enclosed_x2 = max(boxA[2], boxA[2])
+    enclosed_y2 = max(boxA[3], boxA[3])
+    enclosed_area = (enclosed_x2 - enclosed_x1) * (enclosed_y2 - enclosed_y1)
+    enclosed_area = enclosed_area.to(torch.float32)
+
+    # Compute GIoU
+    giou = iou - ((enclosed_area - (boxAArea + boxBArea)) / enclosed_area)
+
+    return giou
+
 def plot_dynamic_graph(d, value, batch_no):
     d(value, batch_no)
 
@@ -435,7 +471,7 @@ def draw_all_bboxes_from_annotations(annt):
         grid_id += 1
 
 
-def image_checks(image, size_x, size_y) -> np.ndarray:
+def image_checks(image, size_x, size_y) -> np.ndarray | int:
     # Some images from the dataset are greyscale, so they need to be
     # converted to RGB before placing them as input in the network.
     if image.shape == (size_x, size_y):
@@ -449,7 +485,7 @@ def image_checks(image, size_x, size_y) -> np.ndarray:
     if np.max(image) - np.min(image) != 0:
         image = (image - np.min(image)) / (np.max(image) - np.min(image))
     else:
-        return np.zeros(1)
+        return -1
 
     return image
 
@@ -464,6 +500,15 @@ def torch_prepare(image, annotations) -> tuple:
     image = image.to(torch.device('cuda'))
     annotations = annotations.reshape(1, 49 * (5 + no_of_classes))
     return image, annotations
+
+
+def animation():
+    seq = "|/-\\"
+    idx = 0
+    while validation:
+        print(seq[idx % len(seq)], end="\r")
+        idx += 1
+        time.sleep(0.1)
 
 
 def conv_yolo_2_dota(bbox):

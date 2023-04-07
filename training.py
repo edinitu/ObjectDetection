@@ -1,4 +1,6 @@
 import sys
+import threading
+
 import yaml
 import customDataset as dataset
 import model
@@ -60,12 +62,12 @@ def loss_calc(outputs, truth):
                                   truth[i, j + (k * (5 + no_of_classes)) + 2],
                                   truth[i, j + (k * (5 + no_of_classes)) + 3],
                                   truth[i, j + (k * (5 + no_of_classes)) + 4])
-                    iou_pred_truth = utils.get_iou_new(bbox_out, bbox_truth)
+                    iou_pred_truth = utils.get_giou(bbox_out, bbox_truth)
                     iou_desired = 1
                     if iou_pred_truth < 0 or iou_pred_truth > 1:
                         one_img_loss += 0
                     else:
-                        one_img_loss += (iou_desired - iou_pred_truth) ** 2
+                        one_img_loss += torch.sqrt((iou_desired - iou_pred_truth)) ** 2
 
         # loss for objectness
         for j in range(0, outputs.shape[1], 5 + no_of_classes):
@@ -103,6 +105,9 @@ def validation_loop(validation_loader, network):
     network.set_testing()
     with torch.no_grad():
         sys.stdout.write('Computing average precision for validation set...\n')
+        utils.validation = True
+        thread = threading.Thread(target=utils.animation)
+        thread.start()
         for k, (img, annt) in enumerate(validation_loader):
             img = img.to(device)
             annt = annt.reshape(-1, 49 * (5 + no_of_classes))
@@ -111,7 +116,8 @@ def validation_loop(validation_loader, network):
             for j in range(annt.shape[0]):
                 _ = utils.FinalPredictions(out[j].to(torch.float32).cpu(), annt[j].to(torch.float32))
 
-        # TODO Add loading animation (minimal priority)
+        utils.validation = False
+        thread.join()
         mAP = utils.get_mAP()
         print(f'Validation mAP: {mAP}')
         mAP_list.append(mAP)
@@ -284,7 +290,7 @@ if __name__ == "__main__":
         epoch_loss = running_loss / batch_no
         epoch_end = time.time_ns()
         epoch_duration = (epoch_end - epoch_begin) * (10 ** (-9))
-        print(f'Epoch {epoch + 1} ended in {epoch_duration}, loss: {epoch_loss}')
+        print(f'Epoch {epoch + 1} ended in {float(epoch_duration/float(60))} minutes, loss: {epoch_loss}')
         loss_list.append(epoch_loss)
         proc_times.append(epoch_duration)
         ap = validation_loop(validation_loader, network)

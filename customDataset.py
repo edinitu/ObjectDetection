@@ -43,7 +43,7 @@ class AerialImagesDataset(Dataset):
         image = plt.imread(self.images[idx])
         image = image.astype(np.float16)
         image = utils.image_checks(image, self.img_dim, self.img_dim)
-        if image == np.zeros(1):
+        if type(image) is int:
             # if image cannot be normalized, something is wrong, choose another random image
             index = np.random.randint(0, len(self.images))
             image, grid_annotations = self.__getitem__(index)

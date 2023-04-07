@@ -1,15 +1,15 @@
 training:
-  train_images_path: '/home/campus/Desktop/data/test_training/img'
-  train_labels_csv: '/home/campus/Desktop/data/test_training/csv'
-  validation_images_path: '/home/campus/Desktop/data/test_training/img'
-  validation_csv_path: '/home/campus/Desktop/data/test_training/csv'
-  last_state_file: '/home/campus/Desktop/data/test.pt'
-  best_state_file: '/home/campus/Desktop/data/test.pt'
+  train_images_path: '/home/campus/Desktop/data/planes_training/img'
+  train_labels_csv: '/home/campus/Desktop/data/planes_training/csv'
+  validation_images_path: '/home/campus/Desktop/data/planes_validation/img'
+  validation_csv_path: '/home/campus/Desktop/data/planes_validation/csv'
+  last_state_file: '/home/campus/Desktop/data/planes_giou_last.pt'
+  best_state_file: '/home/campus/Desktop/data/planes_giou_best.pt'
   plots: '/home/campus/Desktop/data/plots'
   checkpoint: False
-  batch_size: 1
-  epochs: 4
-  learning_rate: 0.00001
+  batch_size: 16
+  epochs: 100
+  learning_rate: 0.0001
 testing:
   weights: 'C:\Users\edini\Desktop\weights-20230323T200846Z-001\weights\planes4_best.pt'
   testing_img: '/home/campus/Desktop/data/multi_class_validation/img'
@@ -23,6 +23,6 @@ general:
   no_of_classes: 1
   grid_dim: 7
   objects_in_grid: 1
-  iou_conf_threshold: 0.5
-  iou_nms_threshold: 0.2
+  iou_conf_threshold: 0.4
+  iou_nms_threshold: 0.4
   iou_TP_threshold: 0.3
