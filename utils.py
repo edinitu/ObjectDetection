@@ -1,10 +1,8 @@
 import os.path
 import time
-
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-from threading import Thread
 import torchvision.transforms as tv
 import torch
 import yaml
@@ -54,6 +52,7 @@ iou_TP_threshold: int
 ratios: list
 dim: int
 validation = False
+
 
 def init():
     with open('configs/pre-processing-config.yaml') as f:
@@ -192,8 +191,14 @@ def crop_img(img, dim) -> dict:
 class FinalPredictions:
     no_of_grids = 49
 
-    # TODO Add comments
     def __init__(self, outputs, truths):
+        """
+            Initialize {class - list <ImageElement>} mappings for both predictions and ground truth. These mappings
+should be present only if there is an object in the grid cell (for ground truth meaning P(Obj) = 1,
+for predictions P(Obj) > confidence threshold).
+        :param outputs: torch.tensor, predictions from the network.
+        :param truths:  torch.tensor, ground truth annotations
+        """
         self.grids = {k: {} for k in labels}
         self.truths = {k: {} for k in labels}
         grid_id = 0
@@ -220,6 +225,11 @@ class FinalPredictions:
 
     # TODO Define unit test for this
     def non_max_suppression(self):
+        """
+            Non-max suppression algorithm. When there are multiple bounding boxes that predict the same object
+            (this is determined by the non-max suppression IOU threshold) only the one with the highest confidence
+            must remain.
+        """
         for class_key in self.grids.keys():
             conf_id_map = {}
             for secondary_key in self.grids[class_key].keys():
@@ -260,7 +270,6 @@ class FinalPredictions:
                         convert_to_yolo_full_scale(self.grids[class_key][pred_key].get_yolo_bbox(), pred_key),
                         convert_to_yolo_full_scale(self.truths[class_key][truth_key].get_yolo_bbox(), truth_key)
                     )
-                    #    print(iou)
                     if iou > iou_TP_threshold:
                         all_detections[class_key].append(
                             PredictionStats(self.grids[class_key][pred_key].get_confidence(), TRUE_POSITIVE)
@@ -277,6 +286,7 @@ class FinalPredictions:
             positives[class_key] += len(list(self.truths[class_key].keys()))
             pos_count += len(list(self.truths[class_key].keys()))
 
+        # Add correct detections ratio per image
         try:
             ratios.append(float(tp_count/pos_count))
         except ZeroDivisionError:
@@ -298,11 +308,11 @@ to DOTA format ((x, y) for all 4 vertices)
         if truths:
             for class_key in self.grids.keys():
                 for elem in self.grids[class_key].values():
-                    elem.draw_box(color='red')
+                    elem.draw_box()
         else:
             for class_key in self.grids.keys():
                 for elem in self.grids[class_key].values():
-                    elem.draw_box()
+                    elem.draw_box(color='orange')
 
     def build_img_elem(self, elem) -> ImageElement:
         img_elem = ImageElement()
@@ -331,6 +341,13 @@ def grey2rgb(img):
 
 
 def get_iou_new(bbox1, bbox2):
+    """
+        Computes IOU for 2 bounding boxes with coordinates in YOLO format (x, y, w, h). First step
+is to convert this format in top-left and bottom-right points coordinates, then compute IOU.
+    :param bbox1: torch.tensor, yolo grid coordinates for a box.
+    :param bbox2: torch.tensor, yolo grid coordinates for a box.
+    :return: torch.float32
+    """
     boxA = [bbox1[0] - bbox1[2] / 2, bbox1[1] - bbox1[3] / 2, bbox1[0] + bbox1[2] / 2, bbox1[1] + bbox1[3] / 2]
     boxB = [bbox2[0] - bbox2[2] / 2, bbox2[1] - bbox2[3] / 2, bbox2[0] + bbox2[2] / 2, bbox2[1] + bbox2[3] / 2]
 
@@ -352,20 +369,10 @@ def get_iou_new(bbox1, bbox2):
     # Calculate the IOU
     iou = interArea / (boxAArea + boxBArea - interArea)
 
-    # enclosed_x1 = min(boxA[0], boxA[0])
-    # enclosed_y1 = min(boxA[1], boxA[1])
-    # enclosed_x2 = max(boxA[2], boxA[2])
-    # enclosed_y2 = max(boxA[3], boxA[3])
-    # enclosed_area = (enclosed_x2 - enclosed_x1) * (enclosed_y2 - enclosed_y1)
-    # enclosed_area = enclosed_area.to(torch.float32)
-    #
-    # # Compute GIoU
-    # giou = iou - ((enclosed_area - (boxAArea + boxBArea)) / enclosed_area)
-
-    # Return the IOU
     return iou
 
 
+# used only in testing
 def get_iou(bbox1, bbox2):
     x1, y1, w1, h1 = bbox1
     x2, y2, w2, h2 = bbox2
@@ -379,6 +386,13 @@ def get_iou(bbox1, bbox2):
 
 
 def get_giou(bbox1, bbox2):
+    """
+        Computes Generalized IOU for 2 bounding boxes with coordinates in YOLO format (x, y, w, h). First step
+is to convert this format in top-left and bottom-right points coordinates, compute IOU, then compute GIOU.
+    :param bbox1: torch.tensor, yolo grid coordinates for a box.
+    :param bbox2: torch.tensor, yolo grid coordinates for a box.
+    :return: torch.float32
+    """
     boxA = [bbox1[0] - bbox1[2] / 2, bbox1[1] - bbox1[3] / 2, bbox1[0] + bbox1[2] / 2, bbox1[1] + bbox1[3] / 2]
     boxB = [bbox2[0] - bbox2[2] / 2, bbox2[1] - bbox2[3] / 2, bbox2[0] + bbox2[2] / 2, bbox2[1] + bbox2[3] / 2]
 
@@ -412,9 +426,6 @@ def get_giou(bbox1, bbox2):
 
     return giou
 
-def plot_dynamic_graph(d, value, batch_no):
-    d(value, batch_no)
-
 
 def convert_to_yolo_full_scale(bbox, grid_id):
     real_x = bbox[0] * ((int(grid_id / 7) + 1) * 64)
@@ -425,6 +436,16 @@ def convert_to_yolo_full_scale(bbox, grid_id):
 
 
 def convert_to_box_coordinates(x, y, w, h, grid_id):
+    """
+        Convert bounding box coordinates from YOLO format (x, y, w, h) to DOTA format ((x, y)
+coordinates for all 4 rectangle points).
+    :param x: x coordinate of the box center
+    :param y: y coordinate of the box center
+    :param w: box width
+    :param h: box height
+    :param grid_id: grid index at which the box is located
+    :return: new bbox in DOTA format
+    """
     bbox = []
 
     real_x = x * ((int(grid_id / 7) + 1) * 64)
@@ -458,17 +479,17 @@ def convert_to_box_coordinates(x, y, w, h, grid_id):
 
     return bbox
 
-
-def draw_all_bboxes_from_annotations(annt):
-    annt = torch.reshape(annt, (49, 6))
-    img = ImageElement()
-    grid_id = 0
-    for elem in annt:
-        if elem[0] > 0.4:
-            bbox = convert_to_box_coordinates(elem[1], elem[2], elem[3], elem[4], grid_id)
-            img.set_bbox(bbox)
-            img.draw_box()
-        grid_id += 1
+# not used now, might be useful
+# def draw_all_bboxes_from_annotations(annt):
+#     annt = torch.reshape(annt, (49, 6))
+#     img = ImageElement()
+#     grid_id = 0
+#     for elem in annt:
+#         if elem[0] > 0.4:
+#             bbox = convert_to_box_coordinates(elem[1], elem[2], elem[3], elem[4], grid_id)
+#             img.set_bbox(bbox)
+#             img.draw_box()
+#         grid_id += 1
 
 
 def image_checks(image, size_x, size_y) -> np.ndarray | int:
@@ -491,10 +512,11 @@ def image_checks(image, size_x, size_y) -> np.ndarray | int:
 
 
 def torch_prepare(image, annotations) -> tuple:
+    # used in testing only one image, prepare the image for network model and dummy annotations for predictions
     transform = tv.Compose([tv.ToTensor()])
     image = transform(image)
     image = torch.reshape(image, (1, 3, dim, -1))
-    annotations = dataset.AerialImagesDataset.no_args_construct().build_grids_annotations(annotations)
+    annotations = dataset.AerialImagesDataset.one_args_construct(no_of_classes).build_grids_annotations(annotations)
     annotations = annotations.astype(np.float16)
     annotations = transform(annotations)
     image = image.to(torch.device('cuda'))
@@ -503,6 +525,7 @@ def torch_prepare(image, annotations) -> tuple:
 
 
 def animation():
+    # used in validation loop
     seq = "|/-\\"
     idx = 0
     while validation:

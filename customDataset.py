@@ -30,8 +30,8 @@ class AerialImagesDataset(Dataset):
         self.transform = transform
 
     @classmethod
-    def no_args_construct(cls):
-        return cls(None, None, 448, 1, 1)
+    def one_args_construct(cls, no_of_classes):
+        return cls(None, None, 448, no_of_classes, 1)
 
     def __len__(self):
         return len(self.images)
