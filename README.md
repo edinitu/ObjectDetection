@@ -27,7 +27,7 @@ Steps for training a model on DOTA data:
 Steps for testing a trained model:
 
 - setup the testing configs: paths
-- for an image from DOTA dataset, set oneDatasetImage to <b>true</b>. The ground truth can also be shown by setting draw_ground_truth.
+- for testing an image from DOTA dataset, set oneDatasetImage to <b>true</b>. The ground truth can also be shown by setting draw_ground_truth.
 - for testing the whole test set to get performance metrics, set all boolean fields to <b>false</b>
 - for testing the model on a random image, set oneRandomImage to <b>true</b>
 - setup general configs with the same ones on which the model was trained
