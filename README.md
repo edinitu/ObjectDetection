@@ -12,7 +12,7 @@
 - PyYAML 6.0
 - pandas 1.5.2  
 
-Steps for correct pre-processing DOTA data:
+Steps for correct pre-processing of DOTA data:
 
 - setup the paths, class labels and the field showOneImage to <b>false</b> in configs/pre-processing-config.yaml
 - run "python showImageFromDataset.py"
